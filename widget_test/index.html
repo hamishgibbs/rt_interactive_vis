@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<link rel="stylesheet" type="text/css" href="global_page_style.css">
+
+<body>
+<script type="text/javascript" src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script type="text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://d3js.org/d3-geo.v1.min.js"></script>
+<script type="text/javascript" src="https://d3js.org/topojson.v1.min.js"></script>
+<script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+<div id="main_map_container" class="map" style="text-align:center;"></div>
+<div class="panel-container"> 
+	<div id="r0_container" class = "plot_panel"></div>
+</div>
+<div class="panel-container"> 
+	<div id="nc_container" class = "plot_panel"></div>
+</div>
+<script type="text/javascript" src="get_global_map.js"></script>
+<script type="text/javascript" src="update_r0_plot.js"></script>
+<script type="text/javascript" src="update_nc_plot.js"></script>
+<script type="text/javascript">
+
+/* ---- define data inputs ---- */
+var map_data = "https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis_datasets/master/geo_data/world.geojson"
+
+var r0_data = "https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis_datasets/master/rt.csv"
+
+var nc_data = "https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis_datasets/master/nowcast_test_usa.csv"
+
+/* d3 date parser */
+var parseDate = d3.timeParse("%Y-%m-%d");
+
+/* ---- define map plot ---- */
+
+var map_container_dims = document.getElementById("main_map_container").getBoundingClientRect();
+
+var map_width = map_container_dims.width,
+    map_height = map_container_dims.height,
+    map_active;
+
+
+var main_map_svg = d3.select("#main_map_container").append("svg")
+    .attr("width", map_width)
+    .attr("height", map_height)
+    .attr("class", "main_map");
+
+/* ---- define r0 plot ---- */
+
+var r0_container_dims = document.getElementById("r0_container").getBoundingClientRect();
+
+var r0_margin = {left: 45, right: 20, top: 20, bottom: 30 };
+
+var r0_width = r0_container_dims.width - r0_margin.left - r0_margin.right;
+var r0_height = r0_container_dims.height - r0_margin.top - r0_margin.bottom;
+
+var r0_svg = d3.select("#r0_container").append("svg")
+	.attr("height","100%")
+	.attr("width","100%")
+    .attr("class", "r0")
+    .append("g")
+    .attr("transform",
+          "translate(" + r0_margin.left + "," + r0_margin.top + ")")
+
+r0_svg.append("text")
+    .attr("x", r0_width / 2 )
+    .attr("y", r0_height / 2)
+    .text("- select a country -")
+    .attr("fill", "gray");
+
+/* ---- define nowcast plot ---- */
+var nc_container_dims = document.getElementById("nc_container").getBoundingClientRect();
+
+var nc_margin = {left: 45, right: 20, top: 20, bottom: 30 };
+
+var nc_width = nc_container_dims.width - nc_margin.left - nc_margin.right;
+var nc_height = nc_container_dims.height - nc_margin.top - nc_margin.bottom;
+
+var nc_svg = d3.select("#nc_container").append("svg")
+	.attr("height","100%")
+	.attr("width","100%")
+    .attr("class", "r0")
+    .append("g")
+    .attr("transform",
+          "translate(" + nc_margin.left + "," + nc_margin.top + ")");
+
+nc_svg.append("text")
+    .attr("x", nc_width / 2 )
+    .attr("y", nc_height / 2)
+    .text("- select a country -")
+    .attr("fill", "gray");
+
+/* ---- add map ---- */
+get_global_map()
+
+d3.selection.prototype.moveToFront = function() {
+	  return this.each(function(){
+	    this.parentNode.appendChild(this);
+	  });
+}
+
+
+</script>

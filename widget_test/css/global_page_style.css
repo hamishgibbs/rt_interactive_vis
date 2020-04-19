@@ -1,0 +1,59 @@
+
+/*map legend*/
+ 
+.map {
+	height: 600px;
+	width: 100%;
+}
+
+.main_map {
+	padding: 20px 20px;
+}
+
+.plot_panel {
+  height: 200px;
+  width: 100%;
+}
+
+.panel-container {
+  display: flex;
+  flex-direction: row;
+}
+
+.poly50 {
+	fill : #c6cddb;
+	stroke: none;
+}
+
+.poly90 {
+	fill : #ebedf3;
+	stroke: black;
+	stroke-width: 0.5;
+
+}
+
+.cases_line {
+	fill: none;
+	stroke: black;
+	stroke-width: 0.5;
+}
+
+.cases_bar {
+	fill : lightgrey;
+	stroke: black;
+	stroke-width: 0.5;
+}
+
+.cases_bar:hover {
+	fill : grey;
+	stroke: black;
+	stroke-width: 0.75;
+}
+
+
+.trajectory.decreasing { fill: #d9bf05; }
+.trajectory.likely_decreasing { fill: #ffec62; }
+.trajectory.unsure { fill: #906490; }
+.trajectory.likely_increasing { fill: #8492b1; }
+.trajectory.increasing { fill: #49536b; }
+.trajectory.no_data { fill: #d3d3d3; }

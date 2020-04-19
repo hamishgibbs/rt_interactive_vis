@@ -1,0 +1,47 @@
+---
+title: "Test Rt Interactive Visualisation"
+author: "Hamish Gibbs"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE}
+htmltools::includeHTML("rt_test_vis_widget.html")
+```
+
+#### Note:
+map colours currently have nothing to do with r0 plot
+
+#### Questions: 
+how is 'increasing/decreasing' defined?  
+where are case counts and time of infection coming from (this could be a second interactive plot panel) - can you output a csv?  
+which r0 dataset to use?  
+how to define x axis start in r0 plots?  
+How to pull from correct tree on GitHub to get latest data?
+
+#### Possible feature additions (let me know):
+addition of time of infections plot (line and bar)  
+interactivity for plots (show u90%, l90%, u50%, l50%) in a side panel for each interactive plot
+option to interact or serve static .pngs (already made)
+
+#### Issue requests
+one output of nowcast with cases column csv
+on output of country name (or iso) and 'increasing/decreasing/etc.'
+NAs set to 0 in cases column
+
+
+#### HG To do:
+read data from epiforecasts github source  
+properly space and zoom map svg within div to center countries (remove large whitespace at bottom)  
+map legend  
+fix chart x axis label overlap  
+put vis components into individual .js files  
+r0 plot y axis label  
+lines thinner and cleaner  
+ensure there are no name conflicts between geo file and rt.csv  
+ensure proper spacing of map and chart in place  
+test on mobile  
+change format of x label to not include weekday names  
