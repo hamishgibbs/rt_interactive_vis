@@ -9,11 +9,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r echo=FALSE}
-htmltools::includeHTML("rt_test_vis_widget.html")
+htmltools::includeHTML("../index.html")
 ```
 
 #### Note:
-map colours currently have nothing to do with r0 plot
+map colours currently have nothing to do with r0 plot  
+using dummy data for time of infection plot
 
 #### Questions: 
 how is 'increasing/decreasing' defined?  
@@ -31,7 +32,6 @@ option to interact or serve static .pngs (already made)
 one output of nowcast with cases column csv
 on output of country name (or iso) and 'increasing/decreasing/etc.'
 NAs set to 0 in cases column
-
 
 #### HG To do:
 read data from epiforecasts github source  

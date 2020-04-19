@@ -370,61 +370,9 @@ summary {
 
 <!DOCTYPE html>
 <meta charset="utf-8">
-<style>
 
-/* FIGURE OUT HOW TO ARRANGE PANELS SO THEY FLEX AND ARE NICE then put the maps and figs in those contianers*/ 
+<link rel="stylesheet" type="text/css" href="https://combinatronics.com/hamishgibbs/rt_interactive_vis/master/widget_test/css/global_page_style.css">
 
-/* create date of infection plot */
-/* add mouseover to r0 plot */
-
-/*tie slider function into both plots */ 
-/* tie map into plots on click */
-
-/*make scale medium*/
-/*map legend*/
-/*remember: using 2 version of d3 which is bad*/
- 
-.map {
-	height: 600px;
-	width: 100%;
-}
-
-.main_map {
-	padding: 20px 20px;
-}
-
-.plot_panel {
-  height: 200px;
-  width: 100%;
-}
-
-.panel-container {
-  display: flex;
-  flex-direction: row;
-}
-
-.poly50 {
-	fill : #c6cddb;
-	stroke: none;
-}
-
-.poly90 {
-	fill : #ebedf3;
-	stroke: black;
-	stroke-width: 0.5;
-
-}
-
-
-.trajectory.decreasing { fill: #d9bf05; }
-.trajectory.likely_decreasing { fill: #ffec62; }
-.trajectory.unsure { fill: #906490; }
-.trajectory.likely_increasing { fill: #8492b1; }
-.trajectory.increasing { fill: #49536b; }
-.trajectory.no_data { fill: #d3d3d3; }
-
-
-</style>
 <body>
 <script type="text/javascript" src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
 <script type="text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
@@ -435,7 +383,20 @@ summary {
 <div class="panel-container"> 
 	<div id="r0_container" class = "plot_panel"></div>
 </div>
+<div class="panel-container"> 
+	<div id="nc_container" class = "plot_panel"></div>
+</div>
+<script type="text/javascript" src="https://combinatronics.com/hamishgibbs/rt_interactive_vis/master/widget_test/js/get_global_map.js"></script>
+<script type="text/javascript" src="https://combinatronics.com/hamishgibbs/rt_interactive_vis/master/widget_test/js/update_r0_plot.js"></script>
+<script type="text/javascript" src="https://combinatronics.com/hamishgibbs/rt_interactive_vis/master/widget_test/js/update_nc_plot.js"></script>
 <script type="text/javascript">
+
+/* ---- define data inputs ---- */
+var map_data = "https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis_datasets/master/geo_data/world.geojson"
+
+var r0_data = "https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis_datasets/master/rt.csv"
+
+var nc_data = "https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis_datasets/master/nowcast_test_usa.csv"
 
 /* d3 date parser */
 var parseDate = d3.timeParse("%Y-%m-%d");
@@ -458,7 +419,7 @@ var main_map_svg = d3.select("#main_map_container").append("svg")
 
 var r0_container_dims = document.getElementById("r0_container").getBoundingClientRect();
 
-var r0_margin = {left: 30, right: 20, top: 20, bottom: 30 };
+var r0_margin = {left: 45, right: 20, top: 20, bottom: 30 };
 
 var r0_width = r0_container_dims.width - r0_margin.left - r0_margin.right;
 var r0_height = r0_container_dims.height - r0_margin.top - r0_margin.bottom;
@@ -477,200 +438,43 @@ r0_svg.append("text")
     .text("- select a country -")
     .attr("fill", "gray");
 
+/* ---- define nowcast plot ---- */
+var nc_container_dims = document.getElementById("nc_container").getBoundingClientRect();
+
+var nc_margin = {left: 45, right: 20, top: 20, bottom: 30 };
+
+var nc_width = nc_container_dims.width - nc_margin.left - nc_margin.right;
+var nc_height = nc_container_dims.height - nc_margin.top - nc_margin.bottom;
+
+var nc_svg = d3.select("#nc_container").append("svg")
+	.attr("height","100%")
+	.attr("width","100%")
+    .attr("class", "r0")
+    .append("g")
+    .attr("transform",
+          "translate(" + nc_margin.left + "," + nc_margin.top + ")");
+
+nc_svg.append("text")
+    .attr("x", nc_width / 2 )
+    .attr("y", nc_height / 2)
+    .text("- select a country -")
+    .attr("fill", "gray");
+
 /* ---- add map ---- */
-d3.json("https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis_datasets/master/geo_data/world.geojson", function(error, world) {
-	if (error) return console.error(error);
-
-  	var features = world.features;
-
-  	var projection = d3.geoCylindricalStereographic()
-  	  .scale(150)
-  	  .center([0, 0])
-  	  .translate([map_width / 2, map_height / 2]);
-
-
-  	var path = d3.geo.path()
-	    .projection(projection);
-
-	main_map_svg.selectAll('path')
-	      .data(features)
-	    .enter().append('path')
-	      .attr('d', path)
-
-	main_map_svg.selectAll(".features")
-	    .data(features)
-	  .enter().append("path")
-	    .attr("class", function(d) { console.log(d.properties.sovereignt); return "trajectory " + d.properties.c_traj; })
-	    .attr("d", path)
-	    .style('stroke', 'black')
-	   	.style('stroke-width', '0.1')
-	    .on('mouseover', map_mouseover)
-	   	.on('mouseout', map_mouseout)
-	   	.on('click', map_click)
-
-});
-
-/* map interaction funcitons */
-
-function map_mouseover(d){
-
-  d3.select(this)
-    .moveToFront()
-  	.style('stroke', 'black')
-  	.style('stroke-width', '0.9')
-  	.attr('id', 'map_active');
-
-}
-
-function map_mouseout(d){
-
-  d3.select(this)
-  	.style('stroke', 'black')
-  	.style('stroke-width', '0.3')
-  	.attr('id', 'map_inactive');
-
-}
-
-function map_click(d){
-	if (map_active === d) return reset_map();
-	main_map_svg.selectAll(".active").classed("active", false);
-  	d3.select(this).classed("active", map_active = d);
-
-  	update_r0_plot(d.properties.sovereignt)
-
-}
-
-function reset_map() {
-  main_map_svg.selectAll(".active").classed("active", map_active = false);
-  main_map_svg.transition().duration(750).attr("transform", "");
-}
+get_global_map()
 
 d3.selection.prototype.moveToFront = function() {
-  return this.each(function(){
-    this.parentNode.appendChild(this);
-  });
-}
-
-/* currently this is reading from the url on every click */
-/*change it so that data is only read in once*/ 
-/* with a placeholder */	
-function update_r0_plot(country){
-
-	r0_svg.selectAll("*").remove();
-
-	var max = 0;
-
-	var minDate = new Date();
-	var maxDate = new Date();
-
-	d3.csv("https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis_datasets/master/rt.csv")
-	  .row(function(d) {
-	        return {
-	        	country: d.country,
-	            date: parseDate(d.date),
-	            median: d.median,
-	            lower_90: d.lower_90,
-	            upper_90: d.upper_90,
-	            lower_50: d.lower_50,
-	            upper_50: d.upper_50
-	        }; 
-	   })
-	  .get(function(error, data) {
-
-	  		ymax = d3.max(data, function(d) { return d.upper_90; });
-
-	  		var data = data.filter(data => data.country == country);
-
-	  		if (data.length == 0){
-	  			console.log('no data')
-	  			r0_svg.append("text")
-				    .attr("x", r0_width / 2 )
-				    .attr("y", r0_height / 2)
-				    .text("- no data -")
-				    .attr("fill", "gray");
-
-				return;
-	  		}
-
-	  		minDate = d3.min(data, function(d) {return d.date; });
-			maxDate = d3.max(data, function(d) { return d.date; });
-
-			var y = d3.scaleLinear()
-						.domain([0,ymax])
-						.range([r0_height,0]);
-
-			var x = d3.scaleTime()
-						.domain([minDate,maxDate])
-						.range([0,r0_width]);
-			
-			var r0_1_line = d3.line()
-				.x(function(d){ return x(d.date); })
-				.y(function(d){ return y(1); })
-				.curve(d3.curveCardinal);
-
-			r0_svg.append("g")
-				.attr("class","chartGroup")
-				.attr("transform","translate(10,10)");
-
-			/* add 90% ci poly */
-			r0_svg.append("path")
-				.datum(data)
-				.attr("class", "poly90")   
-				.attr("d", d3.area()
-				    .x(function(d) { return x(d.date) })
-				    .y0(function(d) { return y(d.upper_90) })
-				    .y1(function(d) { return y(d.lower_90) })
-			)
-
-			/* add 50% ci poly */
-			r0_svg.append("path")
-				.datum(data)
-				.attr("class", "poly50") 
-				.attr("d", d3.area()
-				    .x(function(d) { return x(d.date) })
-				    .y0(function(d) { return y(d.upper_50) })
-				    .y1(function(d) { return y(d.lower_50) })
-			)
-
-			/* add r0_1_line horiz line */
-			r0_svg.append("path")
-				.datum(data)
-				.attr("class", "r0_1_line")   
-				.attr("d", r0_1_line)
-				.attr("stroke-dasharray", "5,5")
-				.attr("stroke", "black")
-				.attr("stroke-width", "1")
-
-
-			/* add y axis line */
-			r0_svg.append("g")
-				.attr("class","axis x")
-				.attr("transform","translate(0,"+r0_height+")")
-				.call(d3.axisBottom(x));
-
-			/* add y axis line */
-			r0_svg.append("g")
-				.attr("class","axis y")
-				.call(d3.axisLeft(y));
-
-			console.log(country)
-
-			r0_svg.append("text")
-				    .attr("x", r0_width / 70 )
-				    .attr("y", r0_height / 10)
-				    .text(country)
-				    .attr("fill", "black")
-				    .attr("font-size","13px");
-
+	  return this.each(function(){
+	    this.parentNode.appendChild(this);
 	  });
-
 }
 
 
 </script>
 <div id="note" class="section level4">
 <h4>Note:</h4>
-<p>map colours currently have nothing to do with r0 plot</p>
+<p>map colours currently have nothing to do with r0 plot<br />
+using dummy data for time of infection plot</p>
 </div>
 <div id="questions" class="section level4">
 <h4>Questions:</h4>
@@ -684,6 +488,10 @@ How to pull from correct tree on GitHub to get latest data?</p>
 <h4>Possible feature additions (let me know):</h4>
 <p>addition of time of infections plot (line and bar)<br />
 interactivity for plots (show u90%, l90%, u50%, l50%) in a side panel for each interactive plot option to interact or serve static .pngs (already made)</p>
+</div>
+<div id="issue-requests" class="section level4">
+<h4>Issue requests</h4>
+<p>one output of nowcast with cases column csv on output of country name (or iso) and ‘increasing/decreasing/etc.’ NAs set to 0 in cases column</p>
 </div>
 <div id="hg-to-do" class="section level4">
 <h4>HG To do:</h4>
