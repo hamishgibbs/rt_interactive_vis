@@ -29,9 +29,9 @@ interactivity for plots (show u90%, l90%, u50%, l50%) in a side panel for each i
 option to interact or serve static .pngs (already made)
 
 #### Issue requests
-one output of nowcast with cases column csv
-on output of country name (or iso) and 'increasing/decreasing/etc.'
-NAs set to 0 in cases column
+one output of nowcast with cases column csv  
+on output of country name (or iso) and 'increasing/decreasing/etc.'  
+NAs set to 0 in cases column  
 
 #### HG To do:
 read data from epiforecasts github source  
