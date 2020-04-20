@@ -1,2 +1,2 @@
-# rt_interactive_vis_datasets
+# rt_interactive_vis
 data for covid rt interactive visualisation test
