@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <style>
+    body {
+      font-family:"avenir next", Arial, sans-serif;
+      font-size: 12px;
+      color: #696969;
+    }
+
+    #play-button {
+      position: absolute;
+      top: 140px;
+      left: 50px;
+      background: #f08080;
+      padding-right: 26px;
+      border-radius: 3px;
+      border: none;
+      color: white;
+      margin: 0;
+      padding: 0 12px;
+      width: 60px;
+      cursor: pointer;
+      height: 30px;
+    }
+
+    #play-button:hover {
+      background-color: #696969;
+    }    
+    
+    .ticks {
+      font-size: 10px;
+    }
+
+    .track,
+    .track-inset,
+    .track-overlay {
+      stroke-linecap: round;
+    }
+
+    .track {
+      stroke: #000;
+      stroke-opacity: 0.3;
+      stroke-width: 10px;
+    }
+
+    .track-inset {
+      stroke: #dcdcdc;
+      stroke-width: 8px;
+    }
+
+    .track-overlay {
+      pointer-events: stroke;
+      stroke-width: 50px;
+      stroke: transparent;
+      cursor: crosshair;
+    }
+
+    .handle {
+      fill: #fff;
+      stroke: #000;
+      stroke-opacity: 0.5;
+      stroke-width: 1.25px;
+    }
+  </style>
+</head>
+
+<body>
+<div id="vis">
+  <button id="play-button">Play</button>
+</div>
+<div id="plot-container"></div>
+<script>
+
+var formatDateIntoYear = d3.timeFormat("%Y");
+var formatDate = d3.timeFormat("%b %Y");
+var parseDate = d3.timeParse("%m/%d/%y");
+
+var startDate = new Date("2004-11-01"),
+    endDate = new Date("2017-04-01");
+
+var margin = {top:50, right:50, bottom:0, left:50},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var svg = d3.select("#vis")
+    .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom);  
+
+////////// slider //////////
+
+var moving = false;
+var currentValue = 0;
+var targetValue = width;
+
+var playButton = d3.select("#play-button");
+    
+var x = d3.scaleTime()
+    .domain([startDate, endDate])
+    .range([0, targetValue])
+    .clamp(true);
+
+var slider = svg.append("g")
+    .attr("class", "slider")
+    .attr("transform", "translate(" + margin.left + "," + height/5 + ")");
+
+slider.append("line")
+    .attr("class", "track")
+    .attr("x1", x.range()[0])
+    .attr("x2", x.range()[1])
+  .select(function() { return this.parentNode.appendChild(this.cloneNode(true)); })
+    .attr("class", "track-inset")
+  .select(function() { return this.parentNode.appendChild(this.cloneNode(true)); })
+    .attr("class", "track-overlay")
+    .call(d3.drag()
+        .on("start.interrupt", function() { slider.interrupt(); })
+        .on("start drag", function() {
+          currentValue = d3.event.x;
+          update(x.invert(currentValue)); 
+        })
+    );
+
+slider.insert("g", ".track-overlay")
+    .attr("class", "ticks")
+    .attr("transform", "translate(0," + 18 + ")")
+  .selectAll("text")
+    .data(x.ticks(10))
+    .enter()
+    .append("text")
+    .attr("x", x)
+    .attr("y", 10)
+    .attr("text-anchor", "middle")
+    .text(function(d) { return formatDateIntoYear(d); });
+
+var handle = slider.insert("circle", ".track-overlay")
+    .attr("class", "handle")
+    .attr("r", 9);
+
+var label = slider.append("text")  
+    .attr("class", "label")
+    .attr("text-anchor", "middle")
+    .text(formatDate(startDate))
+    .attr("transform", "translate(0," + (-25) + ")")
+
+ 
+////////// plot //////////
+
+var svg = d3.select("#plot-container")
+    .append("svg"),
+    margin = {top: 20, right: 20, bottom: 100, left: 40},
+    width = +svg.attr("width") - margin.left - margin.right,
+    height = +svg.attr("height") - margin.top - margin.bottom;
+
+var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+    y = d3.scaleLinear().rangeRound([height, 0]);
+
+var g = svg.append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+d3.csv("https://raw.githubusercontent.com/epiforecasts/covid-global/5624ffa0ce051bdbf00a67a7fd8fc7c9b9233c98/national-summary/rt.csv")
+    .then(function(data) {
+
+        var data = data.filter(data => data.date == "2020-03-11");
+
+        x.domain(data.map(function(d) { return d.country; }));
+        y.domain([0, d3.max(data, function(d) { return d.median; })]);
+
+        g.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x))
+            .selectAll("text")
+                    .attr("y", 0)
+                    .attr("x", 9)
+                    .attr("font-size", 7)
+                    .attr("dy", ".35em")
+                    .attr("transform", "rotate(90)")
+                    .style("text-anchor", "start");
+
+        g.append("g")
+            .attr("class", "axis axis--y")
+            .call(d3.axisLeft(y).ticks(10))
+          .append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 6)
+            .attr("dy", "0.71em")
+            .attr("text-anchor", "end")
+            .text("Frequency");
+
+        g.selectAll(".ci_90")
+          .data(data)
+          .enter().append("line")
+            .data(data)
+            .attr("x1", function(d) { return x(d.country); })
+            .attr("y1", function(d) { return y(d.lower_90); })
+            .attr("x2", function(d) { return x(d.country); })
+            .attr("y2", function(d) { return y(d.upper_90); })
+            .attr("class", "ci_90");
+
+        g.selectAll(".ci_50")
+          .data(data)
+          .enter().append("line")
+            .data(data)
+            .attr("x1", function(d) { return x(d.country); })
+            .attr("y1", function(d) { return y(d.lower_50); })
+            .attr("x2", function(d) { return x(d.country); })
+            .attr("y2", function(d) { return y(d.upper_50); })
+            .attr("class", "ci_50")
+
+        var r0_1_line = d3.line()
+                .x(function(d){ return x(d.country); })
+                .y(function(d){ return y(1); })
+                .curve(d3.curveCardinal);
+
+
+        g.append("path")
+            .datum(data)
+            .attr("class", "r0_1_line")   
+            .attr("d", r0_1_line)
+            .attr("stroke-dasharray", "5,5")
+            .attr("stroke", "black")
+            .attr("stroke-width", "1")
+    })
+    .catch((error) => {
+        throw error;
+    });
+
+function update(h) {
+  // update position and text of label according to slider scale
+  handle.attr("cx", x(h));
+  label
+    .attr("x", x(h))
+    .text(formatDate(h));
+
+  // filter data set and redraw plot
+  var newData = dataset.filter(function(d) {
+    return d.date < h;
+  })
+  drawPlot(newData);
+}
+
+</script>
+</body>

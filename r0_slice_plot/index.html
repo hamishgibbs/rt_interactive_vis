@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style type="text/css">
+
+.plot_container {
+	height: 400px;
+	width: 100%;
+}
+
+.date_container{
+	height: 50px;
+	width: 100%;
+}
+
+.median {
+	stroke: red;
+}
+/* chrome is caching a version of rtPlots.js that I have edited... */
+</style>
+<body>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.15.1/d3.min.js">
+</script>
+<script type="text/javascript" src="https://code.jquery.com/jquery-3.5.0.js"></script>
+<script type="text/javascript" src="js/rtPlots.js"></script>
+	<div id="r0_slice_container" class="plot_container"></div>
+	<div id="date_slider_container" class="date_container"></div>
+	<script type="text/javascript">
+
+		var r0_data = "https://raw.githubusercontent.com/epiforecasts/covid-global/5624ffa0ce051bdbf00a67a7fd8fc7c9b9233c98/national-summary/rt.csv"
+
+		var r0_svg = rtp.appendPlotSVG("r0_slice_container", "r0_slice"),
+			margin = {top: 20, right: 20, bottom: 50, left: 40};
+
+		var g = r0_svg.append("g")
+	    	.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+	    r0_dims = rtp.getContainerDims("r0_slice_container")
+
+	    var x = d3.scaleBand().rangeRound([0, r0_dims.width]).padding(0.1),
+    		y = d3.scaleLinear().rangeRound([r0_dims.height, 0]);
+
+		var data = d3.csv(r0_data)
+			.then(function(data) {
+
+				/* filter data by date */
+				var data = data.filter(data => data.date == "2020-03-11");
+
+				var data = data.slice(0, 5)
+
+    			x.domain(data.map(function(d) { return d.country; }));
+        		y.domain([0, d3.max(data, function(d) { return d.upper_90; })]);
+
+        		console.log(r0_dims.height)
+
+        		g.append("g")
+            		.attr("class", "axis axis--x")
+            		.attr("transform", "translate(0," + r0_dims.height + ")")
+            		.call(d3.axisBottom(x));
+
+        		/*g.append("g")
+		            .attr("class", "axis axis--x")
+		            .attr("transform", "translate(0," + rtp.getContainerDims("r0_slice_container").height + ")")
+		            .call(d3.axisBottom(x))
+		            .selectAll("text")
+				    .attr("y", 0)
+				    .attr("x", 9)
+				    .attr("font-size", 7)
+				    .attr("dy", ".35em")
+				    .attr("transform", "rotate(90)")
+				    .style("text-anchor", "start");*/
+
+		        g.append("g")
+		            .attr("class", "axis axis--y")
+		            .call(d3.axisLeft(y).ticks(10))
+		          .append("text")
+		            .attr("transform", "rotate(-90)")
+		            .attr("y", 6)
+		            .attr("dy", "0.71em")
+		            .attr("text-anchor", "end")
+		            .text("Frequency");
+
+		        g.selectAll(".bar")
+		          .data(data)
+		          .enter().append("circle")
+		            .attr("class", "median")
+		            .attr("cx", function(d) { return x(d.country); })
+		            .attr("cy", function(d) { return y(d.median); })
+		            .attr('r', 1)
+
+			})
+		    .catch(function(error){
+	  	    	console.log("Unknown data source")  
+			});
+
+
+
+
+
+
+
+
+
+
+
+	</script>
+</body>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+
+.axis--x path {
+  display: none;
+}
+
+.ci_50 {
+    stroke-width: 4;
+    stroke: #c6cddb;
+    fill: none;
+}
+
+.ci_90 {
+    stroke-width: 6;
+    stroke: #ebedf3;
+    fill: none;
+}
+
+
+</style>
+<svg width="960" height="500"></svg>
+<button id="animate-button">Animate</button>
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script>
+
+var svg = d3.select("svg"),
+    margin = {top: 20, right: 20, bottom: 100, left: 40},
+    width = +svg.attr("width") - margin.left - margin.right,
+    height = +svg.attr("height") - margin.top - margin.bottom;
+
+var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
+    y = d3.scaleLinear().rangeRound([height, 0]);
+
+update_r0_slice = function(date){
+    d3.csv("https://raw.githubusercontent.com/epiforecasts/covid-global/5624ffa0ce051bdbf00a67a7fd8fc7c9b9233c98/national-summary/rt.csv")
+    .then(function(data) {
+
+        var data = data.filter(data => data.date == date);
+
+        x.domain(data.map(function(d) { return d.country; }));
+        y.domain([0, d3.max(data, function(d) { return d.median; })]);
+
+        var g = svg.append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        g.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x))
+            .selectAll("text")
+                    .attr("y", 0)
+                    .attr("x", 9)
+                    .attr("font-size", 7)
+                    .attr("dy", ".35em")
+                    .attr("transform", "rotate(90)")
+                    .style("text-anchor", "start");
+
+        g.append("g")
+            .attr("class", "axis axis--y")
+            .call(d3.axisLeft(y).ticks(10))
+          .append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 6)
+            .attr("dy", "0.71em")
+            .attr("text-anchor", "end")
+            .text("Frequency");
+
+        g.selectAll(".ci_90")
+          .data(data)
+          .enter().append("line")
+            .data(data)
+            .attr("x1", function(d) { return x(d.country); })
+            .attr("y1", function(d) { return y(d.lower_90); })
+            .attr("x2", function(d) { return x(d.country); })
+            .attr("y2", function(d) { return y(d.upper_90); })
+            .attr("class", "ci_90");
+
+        g.selectAll(".ci_50")
+          .data(data)
+          .enter().append("line")
+            .data(data)
+            .attr("x1", function(d) { return x(d.country); })
+            .attr("y1", function(d) { return y(d.lower_50); })
+            .attr("x2", function(d) { return x(d.country); })
+            .attr("y2", function(d) { return y(d.upper_50); })
+            .attr("class", "ci_50")
+
+        var r0_1_line = d3.line()
+                .x(function(d){ return x(d.country); })
+                .y(function(d){ return y(1); })
+                .curve(d3.curveCardinal);
+
+
+        g.append("path")
+            .datum(data)
+            .attr("class", "r0_1_line")   
+            .attr("d", r0_1_line)
+            .attr("stroke-dasharray", "5,5")
+            .attr("stroke", "black")
+            .attr("stroke-width", "1")
+    })
+    .catch((error) => {
+        throw error;
+    });
+}
+
+    /* animation button */
+    update_r0_slice("2020-03-11");
+
+    animate_r0_slice = function(){
+        d3.csv("https://raw.githubusercontent.com/epiforecasts/covid-global/5624ffa0ce051bdbf00a67a7fd8fc7c9b9233c98/national-summary/rt.csv")
+            .then(function(data) { 
+
+                var dates = data.map(function(d) { return d.date; });
+                var dates = dates.filter(onlyUnique)
+
+                var i;
+
+                for (i = 0; i < dates.length; i++) {
+
+                    svg.selectAll("*").remove();
+
+                    update_r0_slice(dates[i])
+                }
+
+
+            });
+    };
+
+    button = document.getElementById("animate-button")
+    console.log(button)
+    button.addEventListener('click', function() {
+        setTimeout(animate_r0_slice(), 200);
+    }, false);
+
+    function onlyUnique(value, index, self) { 
+        return self.indexOf(value) === index;
+    }
+        
+    
+
+</script>

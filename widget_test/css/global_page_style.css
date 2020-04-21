@@ -4,10 +4,13 @@
 .map {
 	height: 600px;
 	width: 100%;
+	fill : #c6cddb;
+
 }
 
 .main_map {
 	padding: 20px 20px;
+
 }
 
 .plot_panel {
