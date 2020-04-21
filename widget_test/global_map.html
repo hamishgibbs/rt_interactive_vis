@@ -45,14 +45,6 @@
 
 }
 
-.legend {
-	position: absolute;
-    width: 120px;
-    height: 150px;
-    margin: 0 auto;
-    top: 30%;
-}
-
 .legend_rect {
 	width: 10px;
 	height: 10px;
@@ -130,7 +122,6 @@
 <script type="text/javascript" src="https://d3js.org/topojson.v1.min.js"></script>
 <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
 <div id="main_map_container" class="map_container">
-	<div id="map_legend_container" class="legend"></div>
 </div>
 <div class="panel_container">
 <div class="button-spacer"></div>
@@ -173,101 +164,6 @@ make_interactive = function(){
 
 document.getElementById("static_button").onclick = make_static;
 
-/* ---- map legend ---- */
-var map_legend = d3.select("#map_legend_container").append("svg")
-	.attr("id", "map_legend")
-    .attr("width", "100%")
-    .attr("height", "100%")
-
-console.log(map_legend)
-
-var map_legend_dims = document.getElementById("map_legend_container").getBoundingClientRect();
-
-legend_y_positions = [0.15, 0.3, 0.45, 0.6, 0.75, 0.9];
-
-map_legend.append('rect')
-	.attr("class", "legend_rect")
-	.attr("x", map_legend_dims.width * 0.1)
-	.attr("y", map_legend_dims.height * legend_y_positions[0])
-	.attr("fill", "#49536b")
-
-map_legend.append('rect')
-	.attr("class", "legend_rect")
-	.attr("x", map_legend_dims.width * 0.1)
-	.attr("y", map_legend_dims.height * legend_y_positions[1])
-	.attr("fill", "#8492b1")
-
-map_legend.append('rect')
-	.attr("class", "legend_rect")
-	.attr("x", map_legend_dims.width * 0.1)
-	.attr("y", map_legend_dims.height * legend_y_positions[2])
-	.attr("fill", "#906490")
-
-map_legend.append('rect')
-	.attr("class", "legend_rect")
-	.attr("x", map_legend_dims.width * 0.1)
-	.attr("y", map_legend_dims.height * legend_y_positions[3])
-	.attr("fill", "#ffec62")
-
-map_legend.append('rect')
-	.attr("class", "legend_rect")
-	.attr("x", map_legend_dims.width * 0.1)
-	.attr("y", map_legend_dims.height * legend_y_positions[4])
-	.attr("fill", "#d9bf05")
-
-map_legend.append('rect')
-	.attr("class", "legend_rect")
-	.attr("x", map_legend_dims.width * 0.1)
-	.attr("y", map_legend_dims.height * legend_y_positions[5])
-	.attr("fill", "#d3d3d3")
-
-/* legend text */
-
-map_legend.append("text")
-    .attr("x", map_legend_dims.width * 0.3 )
-    .attr("y", map_legend_dims.height * legend_y_positions[0] + 8)
-    .text("Increasing")
-    .attr("class", "legend_text")
-    .attr("padding-left", "20px");
-
-map_legend.append("text")
-    .attr("x", map_legend_dims.width * 0.3 )
-    .attr("y", map_legend_dims.height * legend_y_positions[1] + 8)
-    .text("Likely Increasing")
-    .attr("class", "legend_text")
-    .attr("padding-left", "20px");
-
-map_legend.append("text")
-    .attr("x", map_legend_dims.width * 0.3 )
-    .attr("y", map_legend_dims.height * legend_y_positions[2] + 8)
-    .text("Unsure")
-    .attr("class", "legend_text")
-    .attr("padding-left", "20px");
-
-map_legend.append("text")
-    .attr("x", map_legend_dims.width * 0.3 )
-    .attr("y", map_legend_dims.height * legend_y_positions[3] + 8)
-    .text("Likely Decreasing")
-    .attr("class", "legend_text")
-    .attr("padding-left", "20px");
-
-map_legend.append("text")
-    .attr("x", map_legend_dims.width * 0.3 )
-    .attr("y", map_legend_dims.height * legend_y_positions[4] + 8)
-    .text("Decreasing")
-    .attr("class", "legend_text")
-    .attr("padding-left", "20px");
-
-map_legend.append("text")
-    .attr("x", map_legend_dims.width * 0.3 )
-    .attr("y", map_legend_dims.height * legend_y_positions[5] + 8)
-    .text("No Data")
-    .attr("class", "legend_text")
-    .attr("padding-left", "20px");
-
-
-          
-
 
 /* ---- define data inputs ---- */
 var map_data = "https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis/master/geo_data/world.geojson"
@@ -292,6 +188,91 @@ var main_map_svg = d3.select("#main_map_container").append("svg")
     .attr("id", "main_map")
     .attr("preserveAspectRatio", "xMinYMin meet")
     .attr("viewBox", "0 0 "+map_width+" "+map_height);
+
+var map_legend_dims = map_container_dims;
+
+legend_y_positions = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75];
+
+main_map_svg.append('rect')
+	.attr("class", "legend_rect")
+	.attr("x", map_legend_dims.width * 0.1)
+	.attr("y", map_legend_dims.height * legend_y_positions[0])
+	.attr("fill", "#49536b")
+
+main_map_svg.append('rect')
+	.attr("class", "legend_rect")
+	.attr("x", map_legend_dims.width * 0.1)
+	.attr("y", map_legend_dims.height * legend_y_positions[1])
+	.attr("fill", "#8492b1")
+
+main_map_svg.append('rect')
+	.attr("class", "legend_rect")
+	.attr("x", map_legend_dims.width * 0.1)
+	.attr("y", map_legend_dims.height * legend_y_positions[2])
+	.attr("fill", "#906490")
+
+main_map_svg.append('rect')
+	.attr("class", "legend_rect")
+	.attr("x", map_legend_dims.width * 0.1)
+	.attr("y", map_legend_dims.height * legend_y_positions[3])
+	.attr("fill", "#ffec62")
+
+main_map_svg.append('rect')
+	.attr("class", "legend_rect")
+	.attr("x", map_legend_dims.width * 0.1)
+	.attr("y", map_legend_dims.height * legend_y_positions[4])
+	.attr("fill", "#d9bf05")
+
+main_map_svg.append('rect')
+	.attr("class", "legend_rect")
+	.attr("x", map_legend_dims.width * 0.1)
+	.attr("y", map_legend_dims.height * legend_y_positions[5])
+	.attr("fill", "#d3d3d3")
+
+/* legend text */
+
+main_map_svg.append("text")
+    .attr("x", map_legend_dims.width * 0.12 )
+    .attr("y", map_legend_dims.height * legend_y_positions[0] + 8)
+    .text("Increasing")
+    .attr("class", "legend_text")
+    .attr("padding-left", "20px");
+
+main_map_svg.append("text")
+    .attr("x", map_legend_dims.width * 0.12 )
+    .attr("y", map_legend_dims.height * legend_y_positions[1] + 8)
+    .text("Likely Increasing")
+    .attr("class", "legend_text")
+    .attr("padding-left", "20px");
+
+main_map_svg.append("text")
+    .attr("x", map_legend_dims.width * 0.12 )
+    .attr("y", map_legend_dims.height * legend_y_positions[2] + 8)
+    .text("Unsure")
+    .attr("class", "legend_text")
+    .attr("padding-left", "20px");
+
+main_map_svg.append("text")
+    .attr("x", map_legend_dims.width * 0.12 )
+    .attr("y", map_legend_dims.height * legend_y_positions[3] + 8)
+    .text("Likely Decreasing")
+    .attr("class", "legend_text")
+    .attr("padding-left", "20px");
+
+main_map_svg.append("text")
+    .attr("x", map_legend_dims.width * 0.12 )
+    .attr("y", map_legend_dims.height * legend_y_positions[4] + 8)
+    .text("Decreasing")
+    .attr("class", "legend_text")
+    .attr("padding-left", "20px");
+
+main_map_svg.append("text")
+    .attr("x", map_legend_dims.width * 0.12 )
+    .attr("y", map_legend_dims.height * legend_y_positions[5] + 8)
+    .text("No Data")
+    .attr("class", "legend_text")
+    .attr("padding-left", "20px");
+
 
 /* ---- define r0 plot ---- */
 
