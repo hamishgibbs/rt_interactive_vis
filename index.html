@@ -382,13 +382,25 @@ summary {
 /* init values for value plots */
 
 .button-spacer {
-    width: 90%;
+    width: 80%;
     height: 50px;
 }
 
 .button-container {
-    width: 10%;
+    width: 20%;
     height: 50px;
+}
+
+.button {
+  background-color: lightgrey; /* Green */
+  border: none;
+  color: black;
+  padding: 5px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 12px;
+  border-radius: 12px;
 }
 
 .map_container {
@@ -472,7 +484,7 @@ summary {
 <div id="main_map_container" class="map_container"></div>
 <div class="panel_container">
 <div class="button-spacer"></div>
-<div class="button-container"><button id="static_button">Static</button></div>
+<div class="button-container"><button id="static_button" class="button">Static</button></div>
 </div>
 <div id = "r0_row" class="panel_container"> 
 	<div id="r0_container" class = "plot_panel"></div>
