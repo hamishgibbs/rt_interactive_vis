@@ -128,9 +128,9 @@ make_static = function(){
     d3.select("#main_map_container").append("img")
     .attr("width", "100%")
     .attr("height", "100%")
-    .attr("src", "https://github.com/epiforecasts/covid-global/raw/5624ffa0ce051bdbf00a67a7fd8fc7c9b9233c98/national-summary/summary_plot.png")
+    .attr("src", "https://github.com/hamishgibbs/rt_interactive_vis/raw/master/static_map/test_map.png")
 
-    d3.select("#static_button").attr("id", "dynamic_button").text("Interact")
+    d3.select("#static_button").attr("id", "dynamic_button").text("Interactive")
 
     document.getElementById("dynamic_button").onclick = make_interactive;
 }

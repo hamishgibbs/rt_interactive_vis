@@ -9,6 +9,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r echo=FALSE}
-htmltools::includeHTML("../index.html")
+htmltools::includeHTML("../global_map.html")
 ```
 
