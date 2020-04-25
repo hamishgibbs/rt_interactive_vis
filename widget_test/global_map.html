@@ -16,9 +16,10 @@
 /* now: nc reactive - values formatting changes - bar on hover */
 
 .button-spacer {
-    width: 80%;
+    width: 70%;
     height: 50px;
 }
+
 
 .button-container {
     width: 20%;
@@ -53,6 +54,12 @@
 .button_divider{
     width:5px;
     height:auto;
+    display:inline-block;
+}
+
+.button_divider_wide {
+    width: 10%;
+    height: auto;
     display:inline-block;
 }
 
@@ -246,6 +253,7 @@
 </div>
 <div class="panel_container">
 <div class="button-spacer">
+    <div class="button_divider_wide"></div>
     <div id="country_dropdown_container" class="country_dropdown">
         <button onclick="countryDropChoices()" class="button">Countries</button>
         <div id="myDropdown" class="dropdown-content">
@@ -271,9 +279,13 @@
     <button id="week1" class="button" onclick="timeSelectClick()">Previous Week</button>
     <div class="button_divider"></div>
     <button id="day3" class="button" onclick="timeSelectClick()">Previous 3 Days</button>
-    
+    <div class="button_divider_wide"></div>
+
 </div>
-<script type="text/javascript" src="js/gmap.js"></script>
+ 
+<script type="text/javascript" src="https://combinatronics.com/hamishgibbs/rt_interactive_vis/master/widget_test/js/gmap.js"></script>
+<!-- for local dev -->
+<!--<script type="text/javascript" src="js/gmap.js"></script> -->
 <script type="text/javascript">
 
 /* ---- define data inputs ---- */
@@ -296,7 +308,7 @@ make_static = function(){
     document.getElementById("country_dropdown_container").remove();
     
     d3.select("#main_map_container").append("img")
-    .attr("width", "100%")
+    .attr("width", "auto")
     .attr("height", "100%")
     .attr("src", "https://github.com/hamishgibbs/rt_interactive_vis/raw/master/static_map/test_map.png")
 
