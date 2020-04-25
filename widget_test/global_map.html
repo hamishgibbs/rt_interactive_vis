@@ -11,6 +11,10 @@
 /* add mouseout and mousein functions - mouseout display data on max date */
 /* init values for value plots */
 
+/* get map colours from output chart on each day -0 see which and if it is currently in an rds */
+
+/* now: nc reactive - values formatting changes - bar on hover */
+
 .button-spacer {
     width: 80%;
     height: 50px;
@@ -22,7 +26,8 @@
 }
 
 .button {
-  background-color: lightgrey; /* Green */
+  background-color: white;
+  box-shadow: 0 0 5px lightgrey;
   border: none;
   color: black;
   padding: 5px 20px;
@@ -31,6 +36,24 @@
   display: inline-block;
   font-size: 12px;
   border-radius: 12px;
+}
+
+.button_active {
+  background-color: lightgrey;
+  border: 5px;
+  color: black;
+  padding: 5px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 12px;
+  border-radius: 12px;
+}
+
+.button_divider{
+    width:5px;
+    height:auto;
+    display:inline-block;
 }
 
 .map_container {
@@ -55,6 +78,10 @@
 	fill: black;
 }
 
+.no_data_text {
+    fill: gray;
+}
+
 .plot_panel {
   height: 200px;
   width: 90%;
@@ -70,7 +97,10 @@
   flex-direction: row;
 }
 
-
+.plot_title {
+    fill: black;
+    font-size: 13px;
+}
 
 .poly50 {
     fill : #c6cddb;
@@ -82,6 +112,12 @@
     stroke: black;
     stroke-width: 0.5;
 
+}
+
+.r0_1_line {
+    stroke-dasharray: 5,5;
+    stroke: black;
+    stroke-width: 1;
 }
 
 .cases_line {
@@ -96,23 +132,108 @@
     stroke-width: 0.5;
 }
 
-.cases_bar:hover {
-    fill : grey;
+.trajectory.decreasing { 
+    fill: #d9bf05; 
     stroke: black;
-    stroke-width: 0.75;
+    stroke-width: 0.1;
+}
+.trajectory.likely_decreasing { 
+    fill: #ffec62; 
+    stroke: black;
+    stroke-width: 0.1;
+
+}
+.trajectory.unsure { 
+    fill: #906490; 
+    stroke: black;
+    stroke-width: 0.1;
+}
+.trajectory.likely_increasing { 
+    fill: #8492b1; 
+    stroke: black;
+    stroke-width: 0.1;
+}
+.trajectory.increasing { 
+    fill: #49536b; 
+    stroke: black;
+    stroke-width: 0.1;
+}
+.trajectory.no_data { 
+    fill: #d3d3d3;
+    stroke: black; 
+    stroke-width: 0.1;
 }
 
+#hover_spatial_active {
+    stroke: black;
+    stroke-width: 0.6;
+}
 
-.trajectory.decreasing { fill: #d9bf05; }
-.trajectory.likely_decreasing { fill: #ffec62; }
-.trajectory.unsure { fill: #906490; }
-.trajectory.likely_increasing { fill: #8492b1; }
-.trajectory.increasing { fill: #49536b; }
-.trajectory.no_data { fill: #d3d3d3; }
+#hover_spatial_inactive {
+    stroke: black;
+    stroke-width: 0.1;
+}
 
 .mouseover_values {
     font-size: 10px;
 }
+
+.time_select_container {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.dropbtn {
+  background-color: #4CAF50;
+  color: white;
+  padding: 16px;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+}
+
+.dropbtn:hover, .dropbtn:focus {
+  background-color: #3e8e41;
+}
+
+#country_input {
+  box-sizing: border-box;
+  background-image: url('https://img.icons8.com/ios/25/000000/search--v1.png');
+  background-position: 14px 12px;
+  background-repeat: no-repeat;
+  font-size: 16px;
+  padding: 14px 20px 12px 45px;
+  border: none;
+  border-bottom: 1px solid #ddd;
+}
+
+#country_input:focus {outline: 3px solid #ddd;}
+
+.country_dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #f6f6f6;
+  min-width: 230px;
+  border: 1px solid #ddd;
+  z-index: 1;
+}
+
+.dropdown-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+.dropdown-content a:hover {background-color: #f1f1f1}
+
+.show {display:block;}
+
 
 </style>
 <body>
@@ -124,8 +245,15 @@
 <div id="main_map_container" class="map_container">
 </div>
 <div class="panel_container">
-<div class="button-spacer"></div>
-<div class="button-container"><button id="static_button" class="button">Static</button></div>
+<div class="button-spacer">
+    <div id="country_dropdown_container" class="country_dropdown">
+        <button onclick="countryDropChoices()" class="button">Countries</button>
+        <div id="myDropdown" class="dropdown-content">
+            <input type="text" placeholder="Search.." id="country_input" onfocus="this.value=''" onkeyup="countryFilterFunction()">
+        </div>
+    </div>
+</div>
+<div class="button-container"><button id="static_button" class="button">Static Map</button></div>
 </div>
 <div id = "r0_row" class="panel_container"> 
 	<div id="r0_container" class = "plot_panel"></div>
@@ -135,8 +263,26 @@
 	<div id="nc_container" class = "plot_panel"></div>
     <div id="nc_val_container" class="plot_values"></div>
 </div>
-
+<div id="time_select" class="time_select_container">
+    <button id="All" class="button" onclick="timeSelectClick()">All</button>
+    <div class="button_divider"></div>
+    <button id="month1" class="button" onclick="timeSelectClick()">Previous Month</button>
+    <div class="button_divider"></div>
+    <button id="week1" class="button" onclick="timeSelectClick()">Previous Week</button>
+    <div class="button_divider"></div>
+    <button id="day3" class="button" onclick="timeSelectClick()">Previous 3 Days</button>
+    
+</div>
+<script type="text/javascript" src="js/gmap.js"></script>
 <script type="text/javascript">
+
+/* ---- define data inputs ---- */
+var map_data = "https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis/master/geo_data/world.geojson"
+
+var r0_data = "https://raw.githubusercontent.com/epiforecasts/covid-global/c9bd36ee9d86eb879954f73db16c7542443e3efb/national-summary/rt.csv"
+
+var nc_data = "https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis/master/nowcast_test_usa.csv"
+
 
 /* define interaction button */
 make_static = function(){
@@ -146,13 +292,15 @@ make_static = function(){
     document.getElementById("r0_val_container").remove();
     document.getElementById("nc_container").remove();
     document.getElementById("nc_val_container").remove();
+    document.getElementById("time_select").remove();
+    document.getElementById("country_dropdown_container").remove();
     
     d3.select("#main_map_container").append("img")
     .attr("width", "100%")
     .attr("height", "100%")
     .attr("src", "https://github.com/hamishgibbs/rt_interactive_vis/raw/master/static_map/test_map.png")
 
-    d3.select("#static_button").attr("id", "dynamic_button").text("Interactive")
+    d3.select("#static_button").attr("id", "dynamic_button").text("Interactive Map")
 
     document.getElementById("dynamic_button").onclick = make_interactive;
 }
@@ -163,13 +311,89 @@ make_interactive = function(){
 
 document.getElementById("static_button").onclick = make_static;
 
+/* country selector */
+/* these should be wrapped into default gmap methods for regional plots */
+function countryDropChoices() {
+  document.getElementById("myDropdown").classList.toggle("show");
+}
 
-/* ---- define data inputs ---- */
-var map_data = "https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis/master/geo_data/world.geojson"
+function countryFilterFunction() {
+  var input, filter, ul, li, a, i;
+  input = document.getElementById("country_input");
 
-var r0_data = "https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis/master/rt.csv"
+  filter = input.value.toUpperCase();
+  div = document.getElementById("myDropdown");
+  a = div.getElementsByTagName("a");
+  for (i = 0; i < a.length; i++) {
+    txtValue = a[i].textContent || a[i].innerText;
+    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+      a[i].style.display = "";
+    } else {
+      a[i].style.display = "none";
+    }
+  }
+}
 
-var nc_data = "https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis/master/nowcast_test_usa.csv"
+/* append items to country dropdown list */
+d3.csv(r0_data)
+      .row(function(d) {
+            return {
+                country: d.country,
+                date: parseDate(d.date),
+                median: parseFloat(d.median),
+                lower_90: parseFloat(d.lower_90),
+                upper_90: parseFloat(d.upper_90),
+                lower_50: parseFloat(d.lower_50),
+                upper_50: parseFloat(d.upper_50)
+            }; 
+       })
+      .get(function(error, data) {
+        /* makes a country list of only countries with data */
+        
+        country_names = data.map(function(d){return(d.country)}).filter(gmap.utils.arrayUnique)
+
+        var i;
+
+        for (i = 0; i < country_names.length; i++) {
+          d3.select("#myDropdown")
+            .append("a")
+            .text(country_names[i])
+            .on("click", dropdownItemClick)
+        }
+});
+
+dropdownItemClick = function(){
+
+    update_r0_plot(this.text)
+    update_nc_plot(this.text)
+
+    document.getElementById("myDropdown").classList.toggle("show")
+
+}
+
+timeSelectClick = function(){
+    time_range = this.document.activeElement.innerText
+
+    update_r0_plot(country = null, time_range = time_range)
+    update_nc_plot(country = null, time_range = time_range)
+
+    d3.select("#All")
+        .attr("class", "button")
+
+    d3.select("#day3")
+        .attr("class", "button")
+
+    d3.select("#week1")
+        .attr("class", "button")
+
+    d3.select("#month1")
+        .attr("class", "button")
+
+    d3.select(this.document.activeElement)
+        .attr("class", "button_active")
+    /* hilight buttons if they are selected */
+
+}
 
 /* d3 date parser */
 var parseDate = d3.timeParse("%Y-%m-%d");
@@ -188,89 +412,16 @@ var main_map_svg = d3.select("#main_map_container").append("svg")
     .attr("preserveAspectRatio", "xMinYMin meet")
     .attr("viewBox", "0 0 "+map_width+" "+map_height);
 
-var map_legend_dims = map_container_dims;
+/* legend */
 
 legend_y_positions = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75];
+legend_y_text_positions = [0.52, 0.57, 0.62, 0.67, 0.72, 0.77];
+legend_key_colours = ["#49536b", "#8492b1", "#906490", "#ffec62", "#d9bf05", "#d3d3d3"];
+legend_text_labels = ["Increasing", "Likely Increasing", "Unsure", "Likely Decreasing", "Decreasing", "No Data"];
 
-main_map_svg.append('rect')
-	.attr("class", "legend_rect")
-	.attr("x", map_legend_dims.width * 0.1)
-	.attr("y", map_legend_dims.height * legend_y_positions[0])
-	.attr("fill", "#49536b")
+gmap.legend.annotateKeyRectSeqV(main_map_svg, legend_y_positions, 0.1, legend_key_colours, map_container_dims)
 
-main_map_svg.append('rect')
-	.attr("class", "legend_rect")
-	.attr("x", map_legend_dims.width * 0.1)
-	.attr("y", map_legend_dims.height * legend_y_positions[1])
-	.attr("fill", "#8492b1")
-
-main_map_svg.append('rect')
-	.attr("class", "legend_rect")
-	.attr("x", map_legend_dims.width * 0.1)
-	.attr("y", map_legend_dims.height * legend_y_positions[2])
-	.attr("fill", "#906490")
-
-main_map_svg.append('rect')
-	.attr("class", "legend_rect")
-	.attr("x", map_legend_dims.width * 0.1)
-	.attr("y", map_legend_dims.height * legend_y_positions[3])
-	.attr("fill", "#ffec62")
-
-main_map_svg.append('rect')
-	.attr("class", "legend_rect")
-	.attr("x", map_legend_dims.width * 0.1)
-	.attr("y", map_legend_dims.height * legend_y_positions[4])
-	.attr("fill", "#d9bf05")
-
-main_map_svg.append('rect')
-	.attr("class", "legend_rect")
-	.attr("x", map_legend_dims.width * 0.1)
-	.attr("y", map_legend_dims.height * legend_y_positions[5])
-	.attr("fill", "#d3d3d3")
-
-/* legend text */
-
-main_map_svg.append("text")
-    .attr("x", map_legend_dims.width * 0.12 )
-    .attr("y", map_legend_dims.height * legend_y_positions[0] + 8)
-    .text("Increasing")
-    .attr("class", "legend_text")
-    .attr("padding-left", "20px");
-
-main_map_svg.append("text")
-    .attr("x", map_legend_dims.width * 0.12 )
-    .attr("y", map_legend_dims.height * legend_y_positions[1] + 8)
-    .text("Likely Increasing")
-    .attr("class", "legend_text")
-    .attr("padding-left", "20px");
-
-main_map_svg.append("text")
-    .attr("x", map_legend_dims.width * 0.12 )
-    .attr("y", map_legend_dims.height * legend_y_positions[2] + 8)
-    .text("Unsure")
-    .attr("class", "legend_text")
-    .attr("padding-left", "20px");
-
-main_map_svg.append("text")
-    .attr("x", map_legend_dims.width * 0.12 )
-    .attr("y", map_legend_dims.height * legend_y_positions[3] + 8)
-    .text("Likely Decreasing")
-    .attr("class", "legend_text")
-    .attr("padding-left", "20px");
-
-main_map_svg.append("text")
-    .attr("x", map_legend_dims.width * 0.12 )
-    .attr("y", map_legend_dims.height * legend_y_positions[4] + 8)
-    .text("Decreasing")
-    .attr("class", "legend_text")
-    .attr("padding-left", "20px");
-
-main_map_svg.append("text")
-    .attr("x", map_legend_dims.width * 0.12 )
-    .attr("y", map_legend_dims.height * legend_y_positions[5] + 8)
-    .text("No Data")
-    .attr("class", "legend_text")
-    .attr("padding-left", "20px");
+gmap.legend.annotateTextSeqV(main_map_svg, legend_y_text_positions, 0.12, legend_text_labels, map_container_dims)
 
 
 /* ---- define r0 plot ---- */
@@ -333,67 +484,19 @@ var nc_val_svg = d3.select("#nc_val_container").append("svg")
     .attr("width","100%")
 
 /* ---- add map ---- */
-get_global_map()
 
-var projection = d3.geoCylindricalStereographic()
-          
-var path = d3.geo.path()
-  .projection(projection);
+d3.json(map_data, function(error, world) {
 
-function get_global_map(){
-    d3.json(map_data, function(error, world) {
-        if (error) return console.error(error);
+    map_interactions = [['mouseover', gmap.interact.activateHoverSpatial],
+    ['mouseout', gmap.interact.deactivateHoverSpatial], ['click', map_click]]
 
-        var features = world.features;
+    var polygons = gmap.geometry.plotSpatialPolygons(world, d3.geoCylindricalStereographic(), map_width, map_height);
 
-        /*get bounds to work for multiple features*/
-        var scaleCenter = calculateScaleCenter(world);
+    gmap.geometry.appendSpatialGeom(main_map_svg, world.features, polygons, function(d) { return "trajectory " + d.properties.c_traj; }, on = map_interactions)
 
-        projection.scale(scaleCenter.scale)
-            .center(scaleCenter.center)
-            .translate([map_width/2, map_height/2]);
-
-        main_map_svg.selectAll('path')
-              .data(features)
-            .enter().append('path')
-              .attr('d', path)
-
-        main_map_svg.selectAll(".features")
-            .data(features)
-          .enter().append("path")
-            .attr("class", function(d) { return "trajectory " + d.properties.c_traj; })
-            .attr("d", path)
-            .style('stroke', 'black')
-            .style('stroke-width', '0.1')
-            .on('mouseover', map_mouseover)
-            .on('mouseout', map_mouseout)
-            .on('click', map_click)
-
-    });
-
-}
+});
 
 /* map interaction functions */
-
-function map_mouseover(d){
-
-  d3.select(this)
-    .moveToFront()
-    .style('stroke', 'black')
-    .style('stroke-width', '0.9')
-    .attr('id', 'map_active');
-
-}
-
-function map_mouseout(d){
-
-  d3.select(this)
-    .style('stroke', 'black')
-    .style('stroke-width', '0.3')
-    .attr('id', 'map_inactive');
-
-}
-
 function map_click(d){
     if (map_active === d) return reset_map();
     main_map_svg.selectAll(".active").classed("active", false);
@@ -402,6 +505,18 @@ function map_click(d){
     update_r0_plot(d.properties.sovereignt)
     update_nc_plot(d.properties.sovereignt)
 
+    d3.select("#All")
+        .attr("class", "button_active")
+
+    d3.select("#day3")
+        .attr("class", "button")
+
+    d3.select("#week1")
+        .attr("class", "button")
+
+    d3.select("#month1")
+        .attr("class", "button")
+
 }
 
 function reset_map() {
@@ -409,50 +524,27 @@ function reset_map() {
   main_map_svg.transition().duration(750).attr("transform", "");
 }
 
-d3.selection.prototype.moveToFront = function() {
-	  return this.each(function(){
-	    this.parentNode.appendChild(this);
-	  });
+
+function getPrintDate(date){
+
+    var print_date = selectedData.date.getFullYear() + "-" + (selectedData.date.getMonth() + 1) + "-" + selectedData.date.getDate()
+
+    return(print_date)
+
 }
 
-function calculateScaleCenter(features) {
-  
-  var bbox_path = path.bounds(features),
-      scale = 120 / Math.max(
-        (bbox_path[1][0] - bbox_path[0][0]) / map_width,
-        (bbox_path[1][1] - bbox_path[0][1]) / map_height
-      );
+/* r0 plot */
+var date_bisect = d3.bisector(function(d) { return d.date; }).left;
 
-  var bbox_feature = d3.geo.bounds(features),
-      center = [
-        (bbox_feature[1][0] + bbox_feature[0][0]) / 2,
-        (bbox_feature[1][1] + bbox_feature[0][1]) / 2];
-
-  return {
-    'scale': scale,
-    'center': center
-  };
-  }
-
-  function getPrintDate(date){
-                var print_date = selectedData.date.getFullYear() + "-" + (selectedData.date.getMonth() + 1) + "-" + selectedData.date.getDate()
-
-                return(print_date)
+function update_r0_plot(country=null, time_range = null){
+    
+    if (country == null){
+        country = d3.select('#r0_title').text()
     }
-
-
-  /* r0 plot */
-
-  var bisect = d3.bisector(function(d) { return d.date; }).left;
-
-  function update_r0_plot(country){
 
     r0_svg.selectAll("*").remove();
 
     var max = 0;
-
-    var minDate = new Date();
-    var maxDate = new Date();
 
     d3.csv(r0_data)
       .row(function(d) {
@@ -467,24 +559,41 @@ function calculateScaleCenter(features) {
             }; 
        })
       .get(function(error, data) {
+            var data = data.filter(data => data.country == country);
 
             ymax = d3.max(data, function(d) { return d.upper_90; });
 
-            var data = data.filter(data => data.country == country);
-
             if (data.length == 0){
-                console.log('no data')
-                r0_svg.append("text")
-                    .attr("x", r0_width / 2 )
-                    .attr("y", r0_height / 2)
-                    .text("- no data -")
-                    .attr("fill", "gray");
+
+                gmap.plot.appendTitle(r0_svg, "- no data -", 0.4, 0.4, r0_container_dims, "no_data_text")
 
                 return;
             }
 
             minDate = d3.min(data, function(d) {return d.date; });
             maxDate = d3.max(data, function(d) { return d.date; });
+            
+            if (time_range == "Previous 3 Days"){
+
+                minDate = new Date(maxDate - 3 * 24 * 60 * 60 * 1000);
+
+            }
+
+            if(time_range == "Previous Week"){
+
+                minDate = new Date(maxDate - 7 * 24 * 60 * 60 * 1000);
+
+            } 
+
+            if(time_range == "Previous Month"){
+
+                minDate = new Date(maxDate - 30 * 24 * 60 * 60 * 1000);
+
+            }
+
+            var data = data.filter(data => data.date >= minDate);
+
+
 
             var y = d3.scaleLinear()
                         .domain([0,ymax])
@@ -492,61 +601,25 @@ function calculateScaleCenter(features) {
 
             var r0_x = d3.scaleTime()
                         .domain([minDate,maxDate])
-                        .range([0,r0_width]);
+                        .range([0,r0_width]);       
+
+            var r0_1_line = gmap.geometry.plotHLine('date', 1, r0_x, y)
+
+            var r0_poly50 = gmap.geometry.plotHPoly('date', 'upper_50', 'lower_50', r0_x, y)
+
+            var r0_poly90 = gmap.geometry.plotHPoly('date', 'upper_90', 'lower_90', r0_x, y)
+
+            gmap.geometry.appendGeom(r0_svg, data, r0_poly90, "poly90")
+
+            gmap.geometry.appendGeom(r0_svg, data, r0_poly50, "poly50")
+
+            gmap.geometry.appendGeom(r0_svg, data, r0_1_line, "r0_1_line")
+
+            gmap.plot.appendXAxis(r0_svg, r0_height, r0_x, "axis_x")
             
-            var r0_1_line = d3.line()
-                .x(function(d){ return r0_x(d.date); })
-                .y(function(d){ return y(1); })
-                .curve(d3.curveCardinal);
+            gmap.plot.appendYAxis(r0_svg, y, "axis_y")
 
-
-            /* add 90% ci poly */
-            r0_svg.append("path")
-                .datum(data)
-                .attr("class", "poly90")   
-                .attr("d", d3.area()
-                    .x(function(d) { return r0_x(d.date) })
-                    .y0(function(d) { return y(d.upper_90) })
-                    .y1(function(d) { return y(d.lower_90) })
-            )
-
-            /* add 50% ci poly */
-            r0_svg.append("path")
-                .datum(data)
-                .attr("class", "poly50") 
-                .attr("d", d3.area()
-                    .x(function(d) { return r0_x(d.date) })
-                    .y0(function(d) { return y(d.upper_50) })
-                    .y1(function(d) { return y(d.lower_50) })
-            )
-
-            /* add r0_1_line horiz line */
-            r0_svg.append("path")
-                .datum(data)
-                .attr("class", "r0_1_line")   
-                .attr("d", r0_1_line)
-                .attr("stroke-dasharray", "5,5")
-                .attr("stroke", "black")
-                .attr("stroke-width", "1")
-
-
-            /* add x axis line */
-            r0_svg.append("g")
-                .attr("class","axis x")
-                .attr("transform","translate(0,"+r0_height+")")
-                .call(d3.axisBottom(r0_x));
-
-            /* add y axis line */
-            r0_svg.append("g")
-                .attr("class","axis y")
-                .call(d3.axisLeft(y));
-
-            r0_svg.append("text")
-                    .attr("x", r0_width / 70 )
-                    .attr("y", r0_height / 10)
-                    .text(country)
-                    .attr("fill", "black")
-                    .attr("font-size","13px");
+            gmap.plot.appendTitle(r0_svg, country, 0.025, 0.05, r0_container_dims, "plot_title", "r0_title")
 
             /* add a rectagle to track mouse movements */
             r0_svg.append('rect')
@@ -568,44 +641,15 @@ function calculateScaleCenter(features) {
 
                 var x0 = r0_x.invert(d3.mouse(this)[0]);
 
-                var i = bisect(data, x0, 2);
+                var i = date_bisect(data, x0, 2);
                     selectedData = data[i]
 
                 var print_date = getPrintDate(selectedData.date)
 
-                /* date */
-                r0_val_svg.append("text")
-                    .attr("x", r0_val_container_dims.width * 0.15 )
-                    .attr("y", r0_val_container_dims.height * 0.2)
-                    .text(print_date)
-                    .attr("class", "mouseover_values")
-                    .attr("font-weight", "bold");
+                text_y_positions = [0.2, 0.35, 0.45, 0.6, 0.7];
+                r0_text_labels = [print_date, "50% CI:", selectedData.lower_50.toFixed(2) + " - " + selectedData.upper_50.toFixed(2), "90% CI:", selectedData.lower_90.toFixed(2) + " - " + selectedData.upper_90.toFixed(2)]
 
-                /* median */
-                r0_val_svg.append("text")
-                    .attr("x", r0_val_container_dims.width * 0.15 )
-                    .attr("y", r0_val_container_dims.height * 0.4)
-                    .text("Median: "+selectedData.median.toFixed(2))
-                    .attr("class", "mouseover_values");
-
-                var ci_50 = selectedData.upper_50 - selectedData.lower_50;
-
-                var ci_90 = selectedData.upper_90 - selectedData.lower_90;
-
-                /* 50% CI */
-                r0_val_svg.append("text")
-                    .attr("x", r0_val_container_dims.width * 0.15 )
-                    .attr("y", r0_val_container_dims.height * 0.6)
-                    .text("50% CI: "+ci_50.toFixed(2))
-                    .attr("class", "mouseover_values");
-
-                /* 90% CI */
-                r0_val_svg.append("text")
-                    .attr("x", r0_val_container_dims.width * 0.15 )
-                    .attr("y", r0_val_container_dims.height * 0.8)
-                    .text("90% CI: "+ci_90.toFixed(2))
-                    .attr("class", "mouseover_values");
-
+                gmap.legend.annotateTextSeqV(r0_val_svg, text_y_positions, 0.15, r0_text_labels, r0_val_container_dims)
 
             };
 
@@ -613,43 +657,15 @@ function calculateScaleCenter(features) {
 
                 r0_val_svg.selectAll("*").remove();
 
-                var i = bisect(data, maxDate, 2);
+                var i = date_bisect(data, maxDate, 2);
                     selectedData = data[i]
 
                 var print_date = getPrintDate(selectedData.date)
 
-                r0_val_svg.append("text")
-                    .attr("x", r0_val_container_dims.width * 0.15 )
-                    .attr("y", r0_val_container_dims.height * 0.2)
-                    .text(print_date)
-                    .attr("class", "mouseover_values")
-                    .attr("font-weight", "bold");
+                text_y_positions = [0.2, 0.35, 0.45, 0.6, 0.7];
+                r0_text_labels = [print_date, "50% CI:", selectedData.lower_50.toFixed(2) + " - " + selectedData.upper_50.toFixed(2), "90% CI:", selectedData.lower_90.toFixed(2) + " - " + selectedData.upper_90.toFixed(2)]
 
-
-                /* median */
-                r0_val_svg.append("text")
-                    .attr("x", r0_val_container_dims.width * 0.15 )
-                    .attr("y", r0_val_container_dims.height * 0.4)
-                    .text("Median: "+selectedData.median.toFixed(2))
-                    .attr("class", "mouseover_values");
-
-                var ci_50 = selectedData.upper_50 - selectedData.lower_50;
-
-                var ci_90 = selectedData.upper_90 - selectedData.lower_90;
-
-                /* 50% CI */
-                r0_val_svg.append("text")
-                    .attr("x", r0_val_container_dims.width * 0.15 )
-                    .attr("y", r0_val_container_dims.height * 0.6)
-                    .text("50% CI: "+ci_50.toFixed(2))
-                    .attr("class", "mouseover_values");
-
-                /* 90% CI */
-                r0_val_svg.append("text")
-                    .attr("x", r0_val_container_dims.width * 0.15 )
-                    .attr("y", r0_val_container_dims.height * 0.8)
-                    .text("90% CI: "+ci_90.toFixed(2))
-                    .attr("class", "mouseover_values");
+                gmap.legend.annotateTextSeqV(r0_val_svg, text_y_positions, 0.15, r0_text_labels, r0_val_container_dims)
 
             };
 
@@ -657,7 +673,11 @@ function calculateScaleCenter(features) {
 
     };
 
-    function update_nc_plot(country){
+    function update_nc_plot(country = null, time_range = null){
+
+        if (country == null){
+            country = d3.select('#nc_title').text()
+        }
 
         nc_svg.selectAll("*").remove();
 
@@ -687,12 +707,8 @@ function calculateScaleCenter(features) {
             ymax = d3.max(Array(cases_ymax, estim_ymax))
 
             if (data.length == 0){
-                console.log('no data')
-                nc_svg.append("text")
-                    .attr("x", nc_width / 2 )
-                    .attr("y", nc_height / 2)
-                    .text("- no data -")
-                    .attr("fill", "gray");
+
+                gmap.plot.appendTitle(nc_svg, "- no data -", 0.4, 0.4, nc_container_dims, "no_data_text")
 
                 return;
             }
@@ -703,7 +719,29 @@ function calculateScaleCenter(features) {
                     return(d.date)
                 }
             });
+
             maxDate = d3.max(data, function(d) { return d.date; });
+
+            if (time_range == "Previous 3 Days"){
+
+                minDate = new Date(maxDate - 3 * 24 * 60 * 60 * 1000);
+
+            }
+
+            if(time_range == "Previous Week"){
+
+                minDate = new Date(maxDate - 7 * 24 * 60 * 60 * 1000);
+
+            } 
+
+            if(time_range == "Previous Month"){
+
+                minDate = new Date(maxDate - 30 * 24 * 60 * 60 * 1000);
+
+            }
+
+            var line_data = data.filter(data => data.date >= minDate);
+            var bar_data = data.filter(data => data.date > minDate);
 
             var y = d3.scaleLinear()
                         .domain([0,ymax])
@@ -715,7 +753,7 @@ function calculateScaleCenter(features) {
     
             /* add bar plot */
             nc_svg.selectAll('rect')
-              .data(data)
+              .data(bar_data)
               .enter()
               .append('rect')
               .attr('height', function(d, i) {return nc_height - y(d.cases);})
@@ -724,44 +762,19 @@ function calculateScaleCenter(features) {
               .attr('x', function(d, i) {return x(d3.timeDay.offset(d.date, -0.5));})
               .attr('class', 'cases_bar')
 
-            /* add 90% ci poly */
-            nc_svg.append("path")
-                .datum(data)
-                .attr("class", "poly90")   
-                .attr("d", d3.area()
-                    .x(function(d) { return x(d.date) })
-                    .y0(function(d) { return y(d.upper_90) })
-                    .y1(function(d) { return y(d.lower_90) })
-            )
+            var nc_poly50 = gmap.geometry.plotHPoly('date', 'upper_50', 'lower_50', x, y)
 
-            /* add 50% ci poly */
-            nc_svg.append("path")
-                .datum(data)
-                .attr("class", "poly50") 
-                .attr("d", d3.area()
-                    .x(function(d) { return x(d.date) })
-                    .y0(function(d) { return y(d.upper_50) })
-                    .y1(function(d) { return y(d.lower_50) })
-            )
+            var nc_poly90 = gmap.geometry.plotHPoly('date', 'upper_90', 'lower_90', x, y)
 
-            /* add x axis line */
-            nc_svg.append("g")
-                .attr("class","axis x")
-                .attr("transform","translate(0,"+nc_height+")")
-                .call(d3.axisBottom(x));
+            gmap.geometry.appendGeom(nc_svg, line_data, nc_poly90, "poly90")
 
-            /* add y axis line */
-            nc_svg.append("g")
-                .attr("class","axis y")
-                .call(d3.axisLeft(y));
+            gmap.geometry.appendGeom(nc_svg, line_data, nc_poly50, "poly50")
 
-            /* add title */
-            nc_svg.append("text")
-                    .attr("x", nc_width / 70 )
-                    .attr("y", nc_height / 10)
-                    .text(country)
-                    .attr("fill", "black")
-                    .attr("font-size","13px");
+            gmap.plot.appendXAxis(nc_svg, nc_height, x, "axis_x")
+            
+            gmap.plot.appendYAxis(nc_svg, y, "axis_y")
+
+            gmap.plot.appendTitle(nc_svg, country, 0.025, 0.05, nc_container_dims, "plot_title", "nc_title")
 
             function nc_mousemove() {
 
@@ -769,52 +782,16 @@ function calculateScaleCenter(features) {
 
                 var x0 = x.invert(d3.mouse(this)[0]);
 
-                var i = bisect(data, x0, 2);
+                var i = date_bisect(data, x0, 2);
                     selectedData = data[i]
 
                 var print_date = getPrintDate(selectedData.date)
 
-                text_location_aray = [0.15, 0.3, 0.45, 0.6, 0.75]
+                text_y_positions = [0.1, 0.225, 0.35, 0.45, 0.6, 0.7]
 
-                /* date */
-                nc_val_svg.append("text")
-                    .attr("x", nc_val_container_dims.width * 0.1 )
-                    .attr("y", nc_val_container_dims.height *text_location_aray[0])
-                    .text(print_date)
-                    .attr("class", "mouseover_values")
-                    .attr("font-weight", "bold");
+                nc_text_labels = [print_date, "Cases: "+selectedData.cases.toFixed(0), "50% CI:", selectedData.lower_50.toFixed(0) + " - " + selectedData.upper_50.toFixed(0), "90% CI:", selectedData.lower_90.toFixed(0) + " - " + selectedData.upper_90.toFixed(0)]
 
-                /* cases */
-                nc_val_svg.append("text")
-                    .attr("x", nc_val_container_dims.width * 0.1 )
-                    .attr("y", nc_val_container_dims.height * text_location_aray[1])
-                    .text("Cases: "+selectedData.cases.toFixed(0))
-                    .attr("class", "mouseover_values");
-
-                /* median */
-                nc_val_svg.append("text")
-                    .attr("x", nc_val_container_dims.width * 0.1 )
-                    .attr("y", nc_val_container_dims.height * text_location_aray[2])
-                    .text("Median: "+selectedData.median.toFixed(0))
-                    .attr("class", "mouseover_values");
-
-                var ci_50 = selectedData.upper_50 - selectedData.lower_50;
-
-                var ci_90 = selectedData.upper_90 - selectedData.lower_90;
-
-                /* 50% CI */
-                nc_val_svg.append("text")
-                    .attr("x", nc_val_container_dims.width * 0.1 )
-                    .attr("y", nc_val_container_dims.height * text_location_aray[3])
-                    .text("50% CI: "+ci_50.toFixed(0))
-                    .attr("class", "mouseover_values");
-
-                /* 90% CI */
-                nc_val_svg.append("text")
-                    .attr("x", nc_val_container_dims.width * 0.1 )
-                    .attr("y", nc_val_container_dims.height * text_location_aray[4])
-                    .text("90% CI: "+ci_90.toFixed(0))
-                    .attr("class", "mouseover_values");
+                gmap.legend.annotateTextSeqV(nc_val_svg, text_y_positions, 0.1, nc_text_labels, nc_val_container_dims)
 
 
             };
@@ -823,52 +800,16 @@ function calculateScaleCenter(features) {
 
                 nc_val_svg.selectAll("*").remove();
 
-                var i = bisect(data, maxDate, 2);
+                var i = date_bisect(data, maxDate, 2);
                     selectedData = data[i]
 
                 var print_date = getPrintDate(selectedData.date)
-                
-                text_location_aray = [0.15, 0.3, 0.45, 0.6, 0.75]
 
-                /* date */
-                nc_val_svg.append("text")
-                    .attr("x", nc_val_container_dims.width * 0.1 )
-                    .attr("y", nc_val_container_dims.height *text_location_aray[0])
-                    .text(print_date)
-                    .attr("class", "mouseover_values")
-                    .attr("font-weight", "bold");
+                text_y_positions = [0.1, 0.225, 0.35, 0.45, 0.6, 0.7]
 
-                /* cases */
-                nc_val_svg.append("text")
-                    .attr("x", nc_val_container_dims.width * 0.1 )
-                    .attr("y", nc_val_container_dims.height * text_location_aray[1])
-                    .text("Cases: "+selectedData.cases.toFixed(0))
-                    .attr("class", "mouseover_values");
+                nc_text_labels = [print_date, "Cases: "+selectedData.cases.toFixed(0), "50% CI:", selectedData.lower_50.toFixed(0) + " - " + selectedData.upper_50.toFixed(0), "90% CI:", selectedData.lower_90.toFixed(0) + " - " + selectedData.upper_90.toFixed(0)]
 
-                /* median */
-                nc_val_svg.append("text")
-                    .attr("x", nc_val_container_dims.width * 0.1 )
-                    .attr("y", nc_val_container_dims.height * text_location_aray[2])
-                    .text("Median: "+selectedData.median.toFixed(0))
-                    .attr("class", "mouseover_values");
-
-                var ci_50 = selectedData.upper_50 - selectedData.lower_50;
-
-                var ci_90 = selectedData.upper_90 - selectedData.lower_90;
-
-                /* 50% CI */
-                nc_val_svg.append("text")
-                    .attr("x", nc_val_container_dims.width * 0.1 )
-                    .attr("y", nc_val_container_dims.height * text_location_aray[3])
-                    .text("50% CI: "+ci_50.toFixed(0))
-                    .attr("class", "mouseover_values");
-
-                /* 90% CI */
-                nc_val_svg.append("text")
-                    .attr("x", nc_val_container_dims.width * 0.1 )
-                    .attr("y", nc_val_container_dims.height * text_location_aray[4])
-                    .text("90% CI: "+ci_90.toFixed(0))
-                    .attr("class", "mouseover_values");
+                gmap.legend.annotateTextSeqV(nc_val_svg, text_y_positions, 0.1, nc_text_labels, nc_val_container_dims)
 
 
             };
