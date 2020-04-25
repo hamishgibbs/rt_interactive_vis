@@ -1,5 +1,6 @@
 /* break submodules into separat files, all accessed through gmap */
 /* documentation */
+/* functions for dropdown list */
 
 var gmap = {}
 
