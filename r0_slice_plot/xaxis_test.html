@@ -2,6 +2,29 @@
 <meta charset="utf-8">
 <style>
 
+.cont-button-container {
+    width: 100%;
+    height: 50px;
+}
+
+.button {
+  background-color: white;
+  box-shadow: 0 0 5px lightgrey;
+  border: none;
+  color: black;
+  padding: 5px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 12px;
+  border-radius: 12px;
+}
+
+.button_divider{
+    width:5px;
+    height:auto;
+    display:inline-block;
+}
 
 .axis--x path {
   display: none;
@@ -21,10 +44,36 @@
 
 
 </style>
+<div id="cont-bc" class="cont-button-container"></div>
 <svg width="960" height="500"></svg>
 <button id="animate-button">Animate</button>
 <script src="https://d3js.org/d3.v5.min.js"></script>
+<script type="text/javascript" src='../widget_test/js/gmap.js'></script>
 <script>
+
+/* create buttons with continents */
+var cont_ref = d3.csv("https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis/master/continent_reference.csv").then(function(data) {
+
+    continents = data.map(function(d){return(d.continent)}).filter(gmap.utils.arrayUnique)
+
+    var i;
+    for (i = 0; i < continents.length; i++) {
+        d3.select('#cont-bc')
+            .append('button')
+            .text(continents[i])
+            .attr('class', 'button')
+
+        d3.select('#cont-bc')
+            .append('div')
+            .attr('class', 'button_divider')
+    }
+
+    console.log(data)
+
+    return(data)
+
+});
+
 
 var svg = d3.select("svg"),
     margin = {top: 20, right: 20, bottom: 100, left: 40},
@@ -35,6 +84,8 @@ var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
     y = d3.scaleLinear().rangeRound([height, 0]);
 
 update_r0_slice = function(date){
+
+    console.log(cont_ref.)
     d3.csv("https://raw.githubusercontent.com/epiforecasts/covid-global/5624ffa0ce051bdbf00a67a7fd8fc7c9b9233c98/national-summary/rt.csv")
     .then(function(data) {
 
