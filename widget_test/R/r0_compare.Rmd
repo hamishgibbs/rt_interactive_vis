@@ -1,5 +1,5 @@
 ---
-title: "Test Rt Interactive Visualisation"
+title: "r0 Country Comparison"
 author: "Hamish Gibbs"
 output: html_document
 ---
@@ -8,13 +8,6 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-### Global Map Explorer
-
-```{r echo=FALSE}
-htmltools::includeHTML("../global_map.html")
-```
-
-### r0 Country Comparison
 ```{r echo=FALSE}
 htmltools::includeHTML("../../r0_slice_plot/xaxis_test.html")
 ```

@@ -2,6 +2,11 @@
 <meta charset="utf-8">
 <style>
 
+.plot-container {
+    height: 400px;
+    width: 100%;
+}
+
 .cont-button-container {
     width: 100%;
     height: 50px;
@@ -42,64 +47,97 @@
     fill: none;
 }
 
+.plot_title {
+    fill: black;
+    font-size: 13px;
+}
+
 
 </style>
 <div id="cont-bc" class="cont-button-container"></div>
-<svg width="960" height="500"></svg>
-<button id="animate-button">Animate</button>
+<div id="r0_slice_container" class="plot-container"></div>
+
+<button id="animate-button" class="button">Animate</button>
 <script src="https://d3js.org/d3.v5.min.js"></script>
-<script type="text/javascript" src='../widget_test/js/gmap.js'></script>
+<script type="text/javascript" src="https://combinatronics.com/hamishgibbs/rt_interactive_vis/master/widget_test/js/gmap.js"></script>
 <script>
 
+
+var parseDate = d3.timeParse("%Y-%m-%d");
+
+
 /* create buttons with continents */
-var cont_ref = d3.csv("https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis/master/continent_reference.csv").then(function(data) {
+d3.csv("https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis/master/continent_reference.csv").then(function(data) {
 
     continents = data.map(function(d){return(d.continent)}).filter(gmap.utils.arrayUnique)
+    continents.push("All")
 
     var i;
     for (i = 0; i < continents.length; i++) {
-        d3.select('#cont-bc')
+        cont_button = d3.select('#cont-bc')
             .append('button')
             .text(continents[i])
             .attr('class', 'button')
+            .on('click', continentClick)
+
+        if(continents[i] == "All"){
+            cont_button
+                .attr("id", "active_continent")
+        }
 
         d3.select('#cont-bc')
             .append('div')
             .attr('class', 'button_divider')
     }
 
-    console.log(data)
-
-    return(data)
-
 });
 
+continentClick = function(){
 
-var svg = d3.select("svg"),
-    margin = {top: 20, right: 20, bottom: 100, left: 40},
-    width = +svg.attr("width") - margin.left - margin.right,
-    height = +svg.attr("height") - margin.top - margin.bottom;
+    d3.select('#active_continent')
+        .attr("id", null)
 
-var x = d3.scaleBand().rangeRound([0, width]).padding(0.1),
-    y = d3.scaleLinear().rangeRound([height, 0]);
+    console.log(this.innerText)
+    svg.selectAll("*").remove();
+    create_r0_slice(this.innerText)
 
-update_r0_slice = function(date){
+    d3.select(this)
+        .attr("id", "active_continent")
+    
+}
 
-    console.log(cont_ref.)
-    d3.csv("https://raw.githubusercontent.com/epiforecasts/covid-global/5624ffa0ce051bdbf00a67a7fd8fc7c9b9233c98/national-summary/rt.csv")
+var r0_margin = {top: 20, right: 20, bottom: 100, left: 40}
+var r0_container_dims = document.getElementById("r0_slice_container").getBoundingClientRect();
+
+var r0_width = r0_container_dims.width - r0_margin.left - r0_margin.right,
+    r0_height = r0_container_dims.height - r0_margin.top - r0_margin.bottom;
+
+var svg = d3.select("#r0_slice_container")
+    .append('svg')
+    .attr('width', '100%')
+    .attr('height', '100%')
+
+var x = d3.scaleBand().rangeRound([0, r0_width]).padding(1)
+var y = d3.scaleLinear().rangeRound([r0_height, 0]);
+
+create_r0_slice = function(continent){
+
+    d3.csv("https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis/master/rt_cont.csv")
     .then(function(data) {
 
-        var data = data.filter(data => data.date == date);
-
+        if (continent != "All"){
+            var data = data.filter(data => data.continent == continent);
+        }
         x.domain(data.map(function(d) { return d.country; }));
-        y.domain([0, d3.max(data, function(d) { return d.median; })]);
+
+        y.domain([0, d3.max(data, function(d) { return d.upper_90; })]);
 
         var g = svg.append("g")
-            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+            .attr("transform", "translate(" + r0_margin.left + "," + r0_margin.top + ")");
 
         g.append("g")
             .attr("class", "axis axis--x")
-            .attr("transform", "translate(0," + height + ")")
+            .attr("transform", "translate(0," + r0_height + ")")
             .call(d3.axisBottom(x))
             .selectAll("text")
                     .attr("y", 0)
@@ -119,9 +157,17 @@ update_r0_slice = function(date){
             .attr("text-anchor", "end")
             .text("Frequency");
 
-        g.selectAll(".ci_90")
+        var plot_content = svg.append("g")
+            .attr("transform", "translate(" + r0_margin.left + "," + r0_margin.top + ")")
+            .attr("id", "plot_content");    
+
+        maxDate = d3.max(data.map(function(d){return(d.date);}))
+        var data = data.filter(data => data.date == maxDate);
+
+        plot_content.selectAll(".ci_90")
           .data(data)
-          .enter().append("line")
+          .enter()
+          .append("line")
             .data(data)
             .attr("x1", function(d) { return x(d.country); })
             .attr("y1", function(d) { return y(d.lower_90); })
@@ -129,7 +175,7 @@ update_r0_slice = function(date){
             .attr("y2", function(d) { return y(d.upper_90); })
             .attr("class", "ci_90");
 
-        g.selectAll(".ci_50")
+        plot_content.selectAll(".ci_50")
           .data(data)
           .enter().append("line")
             .data(data)
@@ -139,11 +185,12 @@ update_r0_slice = function(date){
             .attr("y2", function(d) { return y(d.upper_50); })
             .attr("class", "ci_50")
 
+        gmap.plot.appendTitle(svg, maxDate, 0.1, 0.1, r0_container_dims, "plot_title")
+
         var r0_1_line = d3.line()
                 .x(function(d){ return x(d.country); })
                 .y(function(d){ return y(1); })
                 .curve(d3.curveCardinal);
-
 
         g.append("path")
             .datum(data)
@@ -152,44 +199,151 @@ update_r0_slice = function(date){
             .attr("stroke-dasharray", "5,5")
             .attr("stroke", "black")
             .attr("stroke-width", "1")
-    })
-    .catch((error) => {
-        throw error;
+
+        /*populate plot with most recent date */
+
     });
+
 }
 
-    /* animation button */
-    update_r0_slice("2020-03-11");
+create_r0_slice("All")
 
-    animate_r0_slice = function(){
-        d3.csv("https://raw.githubusercontent.com/epiforecasts/covid-global/5624ffa0ce051bdbf00a67a7fd8fc7c9b9233c98/national-summary/rt.csv")
-            .then(function(data) { 
+animate_r0_slice = function(){
 
-                var dates = data.map(function(d) { return d.date; });
-                var dates = dates.filter(onlyUnique)
+    continent = d3.select('#active_continent').text()
 
-                var i;
 
-                for (i = 0; i < dates.length; i++) {
+    /* update with only one data download */
 
-                    svg.selectAll("*").remove();
+    d3.csv("https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis/master/rt_cont.csv")
+        .then(function(data) { 
 
-                    update_r0_slice(dates[i])
+            d3.selectAll('#plot_content').remove()
+            d3.selectAll('.plot_title').remove()
+
+            if (continent != "All"){
+                var data = data.filter(data => data.continent == continent);
+            }
+
+            maxDate = d3.max(data.map(function(d){return(d.date);}))
+
+            /* set domain here before data subset */
+            x.domain(data.map(function(d) { return d.country; }));
+
+            y.domain([0, d3.max(data, function(d) { return d.upper_90; })]);
+
+            var dates = data.map(function(d) { return d.date; });
+            var dates = dates.filter(onlyUnique)
+            var dates = dates.sort()
+
+
+            var slice_data = data.filter(data => data.date == dates[dates.length - 1]);
+
+            var plot_content = svg.append("g")
+                .attr("transform", "translate(" + r0_margin.left + "," + r0_margin.top + ")")
+                .attr("id", "plot_content");
+
+            plot_content.selectAll(".ci_90")
+              .data(slice_data)
+              .enter()
+              .append("line")
+                .data(slice_data)
+                .attr("x1", function(d) { return x(d.country); })
+                .attr("y1", function(d) { return y(d.lower_90); })
+                .attr("x2", function(d) { return x(d.country); })
+                .attr("y2", function(d) { return y(d.upper_90); })
+                .attr("class", "ci_90");
+
+
+            plot_content.selectAll(".ci_50")
+              .data(slice_data)
+              .enter().append("line")
+                .data(slice_data)
+                .attr("x1", function(d) { return x(d.country); })
+                .attr("y1", function(d) { return y(d.lower_50); })
+                .attr("x2", function(d) { return x(d.country); })
+                .attr("y2", function(d) { return y(d.upper_50); })
+                .attr("class", "ci_50")
+
+            var i;
+
+            var interval = 150;
+            dates.forEach(function (date, index) {
+              setTimeout(function () {
+
+                d3.selectAll('#plot_content').remove()
+                d3.selectAll('.plot_title').remove()
+
+                console.log(date)
+                var slice_data = data.filter(data => data.date == date);
+
+                console.log(slice_data)
+
+                var plot_content = svg.append("g")
+                .attr("transform", "translate(" + r0_margin.left + "," + r0_margin.top + ")")
+                .attr("id", "plot_content");
+
+                plot_content.selectAll(".ci_90")
+                  .data(slice_data)
+                  .enter()
+                  .append("line")
+                    .data(slice_data)
+                    .attr("x1", function(d) { return x(d.country); })
+                    .attr("y1", function(d) { return y(d.lower_90); })
+                    .attr("x2", function(d) { return x(d.country); })
+                    .attr("y2", function(d) { return y(d.upper_90); })
+                    .attr("class", "ci_90");
+
+                plot_content.selectAll(".ci_50")
+                  .data(slice_data)
+                  .enter().append("line")
+                    .data(slice_data)
+                    .attr("x1", function(d) { return x(d.country); })
+                    .attr("y1", function(d) { return y(d.lower_50); })
+                    .attr("x2", function(d) { return x(d.country); })
+                    .attr("y2", function(d) { return y(d.upper_50); })
+                    .attr("class", "ci_50");
+
+                gmap.plot.appendTitle(svg, date, 0.1, 0.1, r0_container_dims, "plot_title");
+
+                if(date == maxDate){
+                        d3.selectAll('.button').attr("disabled", null)
+
                 }
 
-
+              }, index * interval);
             });
-    };
 
-    button = document.getElementById("animate-button")
-    console.log(button)
-    button.addEventListener('click', function() {
-        setTimeout(animate_r0_slice(), 200);
-    }, false);
+        });
+};
 
-    function onlyUnique(value, index, self) { 
-        return self.indexOf(value) === index;
-    }
+
+anim_button = document.getElementById("animate-button")
+
+anim_button.addEventListener('click', function() {
+
+    d3.selectAll('.button').attr("disabled", "true")
+
+
+    console.log('here');
+    animate_r0_slice();
+}, false);
+
+const sleep = (milliseconds) => {
+  return new Promise(resolve => setTimeout(resolve, milliseconds))
+}
+
+function onlyUnique(value, index, self) { 
+    return self.indexOf(value) === index;
+}
+
+function getPrintDate(date){
+
+var print_date = selectedData.date.getFullYear() + "-" + (selectedData.date.getMonth() + 1) + "-" + selectedData.date.getDate()
+
+return(print_date)
+
+}
         
     
 
