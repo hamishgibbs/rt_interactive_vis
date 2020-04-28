@@ -114,6 +114,17 @@
 
 }
 
+.poly50FC {
+    fill : #efc7b4;
+    stroke: none;
+}
+
+.poly90FC {
+    fill : #faebe4;
+    stroke: black;
+    stroke-width: 0.5;
+}
+
 .r0_1_line {
     stroke-dasharray: 5,5;
     stroke: black;
@@ -130,6 +141,7 @@
     fill : lightgrey;
     stroke: black;
     stroke-width: 0.5;
+    opacity: 0.5;
 }
 
 .trajectory.decreasing { 
@@ -284,10 +296,27 @@
 /* ---- define data inputs ---- */
 var map_data = "https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis/master/geo_data/world.geojson"
 
-var r0_data = "https://raw.githubusercontent.com/epiforecasts/covid-global/c9bd36ee9d86eb879954f73db16c7542443e3efb/national-summary/rt.csv"
+var r0_data = "https://raw.githubusercontent.com/epiforecasts/covid-global/forecasting/national-summary/rt.csv"
 
-var nc_data = "https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis/master/nowcast_test_usa.csv"
+var nc_data = "https://raw.githubusercontent.com/epiforecasts/covid-global/forecasting/national-summary/cases.csv"
 
+var ecdc_data_url = "https://cors-anywhere.herokuapp.com/https://opendata.ecdc.europa.eu/covid19/casedistribution/csv"
+
+d3.csv(ecdc_data_url)
+    .row(function(d) {
+          return {
+              country: d.countriesAndTerritories.replace(/_/g, " "),
+              date: parseDateSlash(d.dateRep),
+              cases: parseFloat(d.cases),
+              deaths: parseFloat(d.deaths)
+          }; 
+     })
+    .get(function(error, data) {
+
+        window.ecdc_data = data
+        console.log('ECDC Data Loaded')
+
+    })
 
 /* define interaction button */
 make_static = function(){
@@ -369,8 +398,8 @@ d3.csv(r0_data)
 
 dropdownItemClick = function(){
 
-    update_r0_plot(this.text)
-    update_nc_plot(this.text)
+    update_r0_plot(this.text, time_range = null)
+    update_nc_plot(this.text, time_range = null)
 
     document.getElementById("myDropdown").classList.toggle("show")
 
@@ -402,6 +431,7 @@ timeSelectClick = function(){
 
 /* d3 date parser */
 var parseDate = d3.timeParse("%Y-%m-%d");
+var parseDateSlash = d3.timeParse("%d/%m/%Y");
 
 /* ---- define map plot ---- */
 
@@ -507,8 +537,8 @@ function map_click(d){
     main_map_svg.selectAll(".active").classed("active", false);
     d3.select(this).classed("active", map_active = d);
 
-    update_r0_plot(d.properties.sovereignt)
-    update_nc_plot(d.properties.sovereignt)
+    update_r0_plot(d.properties.sovereignt, time_range = null)
+    update_nc_plot(d.properties.sovereignt, time_range = null)
 
     d3.select("#All")
         .attr("class", "button_active")
@@ -554,6 +584,7 @@ function update_r0_plot(country=null, time_range = null){
     d3.csv(r0_data)
       .row(function(d) {
             return {
+                type: d.type,
                 country: d.country,
                 date: parseDate(d.date),
                 median: parseFloat(d.median),
@@ -577,26 +608,33 @@ function update_r0_plot(country=null, time_range = null){
 
             minDate = d3.min(data, function(d) {return d.date; });
             maxDate = d3.max(data, function(d) { return d.date; });
-            
+
             if (time_range == "Previous 3 Days"){
 
-                minDate = new Date(maxDate - 3 * 24 * 60 * 60 * 1000);
+                minDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 
             }
 
             if(time_range == "Previous Week"){
 
-                minDate = new Date(maxDate - 7 * 24 * 60 * 60 * 1000);
+                minDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
             } 
 
             if(time_range == "Previous Month"){
 
-                minDate = new Date(maxDate - 30 * 24 * 60 * 60 * 1000);
+                minDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
             }
 
             var data = data.filter(data => data.date >= minDate);
+
+            var full_data = data
+
+            var fc_data = data.filter(data => data.type == "forecast");
+
+            var data = data.filter(data => data.type == "nowcast");
+
 
 
 
@@ -614,11 +652,19 @@ function update_r0_plot(country=null, time_range = null){
 
             var r0_poly90 = gmap.geometry.plotHPoly('date', 'upper_90', 'lower_90', r0_x, y)
 
+            var r0_fc_poly50 = gmap.geometry.plotHPoly('date', 'upper_50', 'lower_50', r0_x, y)
+
+            var r0_fc_poly90 = gmap.geometry.plotHPoly('date', 'upper_90', 'lower_90', r0_x, y)
+
             gmap.geometry.appendGeom(r0_svg, data, r0_poly90, "poly90")
 
             gmap.geometry.appendGeom(r0_svg, data, r0_poly50, "poly50")
 
-            gmap.geometry.appendGeom(r0_svg, data, r0_1_line, "r0_1_line")
+            gmap.geometry.appendGeom(r0_svg, fc_data, r0_fc_poly90, "poly90FC")
+
+            gmap.geometry.appendGeom(r0_svg, fc_data, r0_fc_poly50, "poly50FC")
+
+            gmap.geometry.appendGeom(r0_svg, full_data, r0_1_line, "r0_1_line")
 
             gmap.plot.appendXAxis(r0_svg, r0_height, r0_x, "axis_x")
             
@@ -646,8 +692,8 @@ function update_r0_plot(country=null, time_range = null){
 
                 var x0 = r0_x.invert(d3.mouse(this)[0]);
 
-                var i = date_bisect(data, x0, 2);
-                    selectedData = data[i]
+                var i = date_bisect(full_data, x0, 2);
+                    selectedData = full_data[i]
 
                 var print_date = getPrintDate(selectedData.date)
 
@@ -662,8 +708,8 @@ function update_r0_plot(country=null, time_range = null){
 
                 r0_val_svg.selectAll("*").remove();
 
-                var i = date_bisect(data, maxDate, 2);
-                    selectedData = data[i]
+                var i = date_bisect(full_data, maxDate, 2);
+                    selectedData = full_data[i]
 
                 var print_date = getPrintDate(selectedData.date)
 
@@ -691,147 +737,157 @@ function update_r0_plot(country=null, time_range = null){
         var minDate = new Date();
         var maxDate = new Date();
 
-        d3.csv(nc_data)
-          .row(function(d) {
-                return {
-                    date: parseDate(d.date),
-                    median: parseFloat(d.median),
-                    lower_90: parseFloat(d.bottom),
-                    upper_90: parseFloat(d.top),
-                    lower_50: parseFloat(d.lower),
-                    upper_50: parseFloat(d.upper),
-                    cases: parseFloat(d.cases)
-                }; 
-           })
-          .get(function(error, data) {
+        d3.json("https://pomber.github.io/covid19/timeseries.json")
+        .get(function(error, case_data) {
+          d3.csv(nc_data)
+            .row(function(d) {
+                  return {
+                      country: d.country,
+                      date: parseDate(d.date),
+                      median: parseFloat(d.median),
+                      lower_90: parseFloat(d.lower_90),
+                      upper_90: parseFloat(d.upper_90),
+                      lower_50: parseFloat(d.lower_50),
+                      upper_50: parseFloat(d.upper_50),
+                      
+                  }; 
+             })
+            .get(function(error, data) {
+              var data = data.filter(data => data.country == country);
 
-            cases_ymax = d3.max(data, function(d) { return d.cases; });
+              if (data.length == 0){
 
-            estim_ymax = d3.max(data, function(d) { return d.upper_90; });
+                  gmap.plot.appendTitle(nc_svg, "- no data -", 0.4, 0.4, nc_container_dims, "no_data_text")
 
-            ymax = d3.max(Array(cases_ymax, estim_ymax))
+                  return;
+              }
 
-            if (data.length == 0){
+              /* mak emin date the date of first case - this is vulnerable to disorganized dates (ok if input is standard) */ 
+              minDate = d3.min(data, function(d) {
+                  if (d.median > 1){
+                      return(d.date)
+                  }
+              });
 
-                gmap.plot.appendTitle(nc_svg, "- no data -", 0.4, 0.4, nc_container_dims, "no_data_text")
+              maxDate = d3.max(data, function(d) { return d.date; });
 
-                return;
-            }
+              if (time_range == "Previous 3 Days"){
 
-            /* mak emin date the date of first case - this is vulnerable to disorganized dates (ok if input is standard) */ 
-            minDate = d3.min(data, function(d) {
-                if (d.cases > 1){
-                    return(d.date)
-                }
+                  minDate = new Date(maxDate - 3 * 24 * 60 * 60 * 1000);
+
+              }
+
+              if(time_range == "Previous Week"){
+
+                  minDate = new Date(maxDate - 7 * 24 * 60 * 60 * 1000);
+
+              } 
+
+              if(time_range == "Previous Month"){
+
+                  minDate = new Date(maxDate - 30 * 24 * 60 * 60 * 1000);
+
+              }
+
+              var line_data = data.filter(data => data.date >= minDate);
+
+              ymax = d3.max(data, function(d) { return d.upper_90; });
+
+
+              /*var bar_data = data.filter(data => data.date > minDate);*/
+
+              var y = d3.scaleLinear()
+                          .domain([0,ymax])
+                          .range([nc_height,0]);
+
+              var x = d3.scaleTime()
+                          .domain([minDate,maxDate])
+                          .range([0,nc_width]);
+
+              var nc_poly50 = gmap.geometry.plotHPoly('date', 'upper_50', 'lower_50', x, y)
+
+              var nc_poly90 = gmap.geometry.plotHPoly('date', 'upper_90', 'lower_90', x, y)
+
+              gmap.geometry.appendGeom(nc_svg, line_data, nc_poly90, "poly90")
+
+              gmap.geometry.appendGeom(nc_svg, line_data, nc_poly50, "poly50")
+
+              gmap.plot.appendXAxis(nc_svg, nc_height, x, "axis_x")
+              
+              gmap.plot.appendYAxis(nc_svg, y, "axis_y")
+
+              gmap.plot.appendTitle(nc_svg, country, 0.025, 0.05, nc_container_dims, "plot_title", "nc_title")
+
+              bar_data = window.ecdc_data.filter(data => data.country == country)
+
+              bar_data = bar_data.filter(data => data.date <= maxDate)
+
+              bar_data = bar_data.filter(data => data.date > minDate)
+
+              /* add bar plot */
+              nc_svg.selectAll('rect')
+                .data(bar_data)
+                .enter()
+                .append('rect')
+                .attr('height', function(d, i) {return nc_height - y(d.cases);})
+                .attr('y', function(d, i) {return y(d.cases);})
+                .attr("width", function(d) {return x(d3.timeDay.offset(d.date, 1)) - x(d.date)})
+                .attr('x', function(d, i) {return x(d3.timeDay.offset(d.date, -0.5));})
+                .attr('class', 'cases_bar');
+
+              function nc_mousemove() {
+
+                  nc_val_svg.selectAll("*").remove();
+
+                  var x0 = x.invert(d3.mouse(this)[0]);
+
+                  var i = date_bisect(data, x0, 2);
+                      selectedData = data[i]
+
+                  var print_date = getPrintDate(selectedData.date)
+
+                  text_y_positions = [0.1, 0.25, 0.35, 0.5, 0.6]
+
+                  nc_text_labels = [print_date,"50% CI:", selectedData.lower_50.toFixed(0) + " - " + selectedData.upper_50.toFixed(0), "90% CI:", selectedData.lower_90.toFixed(0) + " - " + selectedData.upper_90.toFixed(0)]
+
+                  gmap.legend.annotateTextSeqV(nc_val_svg, text_y_positions, 0.1, nc_text_labels, nc_val_container_dims)
+
+
+              };
+
+              nc_mouseout = function() {
+
+                  nc_val_svg.selectAll("*").remove();
+
+                  var i = date_bisect(data, maxDate, 2);
+                      selectedData = data[i]
+
+                  var print_date = getPrintDate(selectedData.date)
+
+                  text_y_positions = [0.1, 0.25, 0.35, 0.5, 0.6]
+
+                  nc_text_labels = [print_date,"50% CI:", selectedData.lower_50.toFixed(0) + " - " + selectedData.upper_50.toFixed(0), "90% CI:", selectedData.lower_90.toFixed(0) + " - " + selectedData.upper_90.toFixed(0)]
+
+                  gmap.legend.annotateTextSeqV(nc_val_svg, text_y_positions, 0.1, nc_text_labels, nc_val_container_dims)
+
+
+              };
+
+              /* add a rectagle to track mouse movements */
+              nc_svg.append('rect')
+                  .style("fill", "none")
+                  .style("pointer-events", "all")
+                  .attr('width', nc_width)
+                  .attr('height', nc_height)
+                  .on('mousemove', nc_mousemove)
+                  .on('mouseout', nc_mouseout);
+
+              nc_mouseout()
+
+
             });
-
-            maxDate = d3.max(data, function(d) { return d.date; });
-
-            if (time_range == "Previous 3 Days"){
-
-                minDate = new Date(maxDate - 3 * 24 * 60 * 60 * 1000);
-
-            }
-
-            if(time_range == "Previous Week"){
-
-                minDate = new Date(maxDate - 7 * 24 * 60 * 60 * 1000);
-
-            } 
-
-            if(time_range == "Previous Month"){
-
-                minDate = new Date(maxDate - 30 * 24 * 60 * 60 * 1000);
-
-            }
-
-            var line_data = data.filter(data => data.date >= minDate);
-            var bar_data = data.filter(data => data.date > minDate);
-
-            var y = d3.scaleLinear()
-                        .domain([0,ymax])
-                        .range([nc_height,0]);
-
-            var x = d3.scaleTime()
-                        .domain([minDate,maxDate])
-                        .range([0,nc_width]);
-    
-            /* add bar plot */
-            nc_svg.selectAll('rect')
-              .data(bar_data)
-              .enter()
-              .append('rect')
-              .attr('height', function(d, i) {return nc_height - y(d.cases);})
-              .attr('y', function(d, i) {return y(d.cases);})
-              .attr("width", function(d) {return x(d3.timeDay.offset(d.date, 1)) - x(d.date)})
-              .attr('x', function(d, i) {return x(d3.timeDay.offset(d.date, -0.5));})
-              .attr('class', 'cases_bar')
-
-            var nc_poly50 = gmap.geometry.plotHPoly('date', 'upper_50', 'lower_50', x, y)
-
-            var nc_poly90 = gmap.geometry.plotHPoly('date', 'upper_90', 'lower_90', x, y)
-
-            gmap.geometry.appendGeom(nc_svg, line_data, nc_poly90, "poly90")
-
-            gmap.geometry.appendGeom(nc_svg, line_data, nc_poly50, "poly50")
-
-            gmap.plot.appendXAxis(nc_svg, nc_height, x, "axis_x")
-            
-            gmap.plot.appendYAxis(nc_svg, y, "axis_y")
-
-            gmap.plot.appendTitle(nc_svg, country, 0.025, 0.05, nc_container_dims, "plot_title", "nc_title")
-
-            function nc_mousemove() {
-
-                nc_val_svg.selectAll("*").remove();
-
-                var x0 = x.invert(d3.mouse(this)[0]);
-
-                var i = date_bisect(data, x0, 2);
-                    selectedData = data[i]
-
-                var print_date = getPrintDate(selectedData.date)
-
-                text_y_positions = [0.1, 0.225, 0.35, 0.45, 0.6, 0.7]
-
-                nc_text_labels = [print_date, "Cases: "+selectedData.cases.toFixed(0), "50% CI:", selectedData.lower_50.toFixed(0) + " - " + selectedData.upper_50.toFixed(0), "90% CI:", selectedData.lower_90.toFixed(0) + " - " + selectedData.upper_90.toFixed(0)]
-
-                gmap.legend.annotateTextSeqV(nc_val_svg, text_y_positions, 0.1, nc_text_labels, nc_val_container_dims)
-
-
-            };
-
-            nc_mouseout = function() {
-
-                nc_val_svg.selectAll("*").remove();
-
-                var i = date_bisect(data, maxDate, 2);
-                    selectedData = data[i]
-
-                var print_date = getPrintDate(selectedData.date)
-
-                text_y_positions = [0.1, 0.225, 0.35, 0.45, 0.6, 0.7]
-
-                nc_text_labels = [print_date, "Cases: "+selectedData.cases.toFixed(0), "50% CI:", selectedData.lower_50.toFixed(0) + " - " + selectedData.upper_50.toFixed(0), "90% CI:", selectedData.lower_90.toFixed(0) + " - " + selectedData.upper_90.toFixed(0)]
-
-                gmap.legend.annotateTextSeqV(nc_val_svg, text_y_positions, 0.1, nc_text_labels, nc_val_container_dims)
-
-
-            };
-
-            /* add a rectagle to track mouse movements */
-            nc_svg.append('rect')
-                .style("fill", "none")
-                .style("pointer-events", "all")
-                .attr('width', nc_width)
-                .attr('height', nc_height)
-                .on('mousemove', nc_mousemove)
-                .on('mouseout', nc_mouseout);
-
-            nc_mouseout()
-
-
           });
+
 
     };
 

@@ -13,9 +13,3 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r echo=FALSE}
 htmltools::includeHTML("../global_map.html")
 ```
-
-### r0 Country Comparison
-```{r echo=FALSE}
-htmltools::includeHTML("../../r0_slice_plot/xaxis_test.html")
-```
-
