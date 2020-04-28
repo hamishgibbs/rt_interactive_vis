@@ -597,8 +597,6 @@ function update_r0_plot(country=null, time_range = null){
       .get(function(error, data) {
             var data = data.filter(data => data.country == country);
 
-            ymax = d3.max(data, function(d) { return d.upper_90; });
-
             if (data.length == 0){
 
                 gmap.plot.appendTitle(r0_svg, "- no data -", 0.4, 0.4, r0_container_dims, "no_data_text")
@@ -629,14 +627,13 @@ function update_r0_plot(country=null, time_range = null){
 
             var data = data.filter(data => data.date >= minDate);
 
+            ymax = d3.max(data, function(d) { return d.upper_90; });
+
             var full_data = data
 
             var fc_data = data.filter(data => data.type == "forecast");
 
             var data = data.filter(data => data.type == "nowcast");
-
-
-
 
             var y = d3.scaleLinear()
                         .domain([0,ymax])
@@ -769,7 +766,7 @@ function update_r0_plot(country=null, time_range = null){
                   }
               });
 
-              maxDate = d3.max(data, function(d) { return d.date; });
+              maxDate = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
 
               if (time_range == "Previous 3 Days"){
 
@@ -791,7 +788,20 @@ function update_r0_plot(country=null, time_range = null){
 
               var line_data = data.filter(data => data.date >= minDate);
 
-              ymax = d3.max(data, function(d) { return d.upper_90; });
+              if (typeof(window.ecdc_data) == 'undefined'){
+                  
+                  ymax = d3.max(data, function(d) { return d.upper_90; });
+
+              }else{
+
+                  bar_data = window.ecdc_data.filter(data => data.country == country)
+
+                  nc_ymax = d3.max(data, function(d) { return d.upper_90; });
+
+                  cases_ymax = d3.max(bar_data, function(d) { return d.cases; });
+
+                  ymax = d3.max([nc_ymax, cases_ymax]);
+              }
 
 
               /*var bar_data = data.filter(data => data.date > minDate);*/
@@ -856,6 +866,8 @@ function update_r0_plot(country=null, time_range = null){
               };
 
               nc_mouseout = function() {
+
+                  maxDate = d3.max(data, function(d) { return d.date; });
 
                   nc_val_svg.selectAll("*").remove();
 
