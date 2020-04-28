@@ -11,5 +11,5 @@ knitr::opts_chunk$set(echo = TRUE)
 ### Global Map Explorer
 
 ```{r echo=FALSE}
-htmltools::includeHTML("../global_map.html")
+htmltools::includeHTML("https://github.com/hamishgibbs/rt_interactive_vis/raw/master/widget_test/global_map.html")
 ```
