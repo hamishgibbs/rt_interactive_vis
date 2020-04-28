@@ -874,6 +874,8 @@ function update_r0_plot(country=null, time_range = null){
                   var i = date_bisect(data, maxDate, 2);
                       selectedData = data[i]
 
+                  console.log(date_bisect(data, maxDate, 2))
+
                   var print_date = getPrintDate(selectedData.date)
 
                   text_y_positions = [0.1, 0.25, 0.35, 0.5, 0.6]

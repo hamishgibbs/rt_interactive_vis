@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro" rel="stylesheet">
+<style>
+
+body { 
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 12px;
+  color: #696969;
+}
+
+.pContainer {
+	width: 500px;
+	height: 500px;
+}
+    
+</style>
+</head>
+
+<body>
+  <div class="controls">
+    <button id="animateButton">Animate</button>
+  </div>
+  <div id="plotContainer" class="pContainer"></div>
+<script>
+
+var date_bisect = d3.bisector(function(d) { return d.date; }).left;
+
+var r0_data = "https://raw.githubusercontent.com/epiforecasts/covid-global/master/national-summary/rt.csv"
+
+var nc_data = "https://raw.githubusercontent.com/epiforecasts/covid-global/master/national-summary/cases.csv"
+
+d3.csv(r0_data, d3.autoType).then(function(data) {
+	window.r0_dataset = data
+})
+
+d3.csv(nc_data, d3.autoType).then(function(data) {
+	window.nc_dataset = data
+})
+
+var margin = {top: 20, right: 20, bottom: 20, left: 40}
+var container_dims = document.getElementById("plotContainer").getBoundingClientRect();
+
+var width = container_dims.width - margin.left - margin.right,
+    height = container_dims.height - margin.top - margin.bottom;
+
+var svg = d3.select("#plotContainer")
+    .append('svg')
+    .attr('width', '100%')
+    .attr('height', '100%')
+
+
+
+function checkDataLoad() {
+
+   if (typeof(window.r0_dataset) != 'undefined' && typeof(window.r0_dataset) != 'undefined') {
+       console.log('Both Datasets Loaded')
+
+       /* only plot shared time period */
+       r0MinDate = d3.min(window.r0_dataset, function(d) { return d.date; });
+
+       ncMinDate = d3.min(window.nc_dataset, function(d) { return d.date; });
+
+       minDate = d3.max([r0MinDate, ncMinDate])
+
+       r0MaxDate = d3.max(window.r0_dataset, function(d) { return d.date; });
+
+       ncMaxDate = d3.max(window.nc_dataset, function(d) { return d.date; });
+
+       maxDate = d3.min([r0MaxDate, ncMaxDate])
+
+       var r0_dataset = window.r0_dataset.filter(data => data.date >= minDate);
+
+       var r0_dataset = r0_dataset.filter(data => data.date <= maxDate);
+
+       var nc_dataset = window.nc_dataset.filter(data => data.date >= minDate);
+
+       var nc_dataset = nc_dataset.filter(data => data.date <= maxDate);
+
+       var r0_slice_data = r0_dataset.filter(data => data.date == maxDate);
+
+       console.log(d3.max(r0_dataset, function(d) { return d.date; }))
+
+       console.log(r0_slice_data)
+       console.log(nc_slice_data)
+
+        xmax = d3.max(window.r0_dataset, function(d) { return d.median; });
+
+        ymax = d3.max(window.nc_dataset, function(d) { return d.median; });
+
+        console.log(xmax)
+
+        var x = d3.scaleLinear().rangeRound([0, width])
+        	.domain([0, xmax]);
+
+        var y = d3.scaleLinear().rangeRound([height, 0])
+        	.domain([0, ymax]);
+
+        var g = svg.append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        g.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x))
+            .selectAll("text")
+                    .attr("y", 0)
+                    .attr("x", 9)
+                    .attr("font-size", 7)
+                    .attr("dy", ".35em")
+                    .attr("transform", "rotate(90)")
+                    .style("text-anchor", "start");
+
+        g.append("g")
+            .attr("class", "axis axis--y")
+            .call(d3.axisLeft(y).ticks(10))
+          .append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 6)
+            .attr("dy", "0.71em")
+            .attr("text-anchor", "end")
+            .text("Frequency");
+
+        var plot_content = svg.append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+   }
+ }
+
+ setTimeout(checkDataLoad, 1000);
+
+
+</script>
+</body>

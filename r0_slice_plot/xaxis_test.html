@@ -88,12 +88,15 @@ create_initial_slice = function(){
     d3.csv("https://raw.githubusercontent.com/epiforecasts/covid-global/0a83efba34a9e5e5e4bf5cbb810ec749fed1a134/national-summary/cases.csv")
     .then(function(data) {
 
+        console.log(data)
 
         maxDate = d3.max(data.map(function(d){return(d.date);}))
 
         data.sort(function(a, b) {
             return d3.descending(parseFloat(a.median), parseFloat(b.median))
         })
+
+        var ymax = d3.max(data, function(d) { return parseFloat(d.upper_90); })
 
         var data = data.filter(data => data.date == maxDate);
 
@@ -102,7 +105,9 @@ create_initial_slice = function(){
 
         window.x_domain = data.map(function(d) { return d.country; })
 
-        y.domain([0, d3.max(data, function(d) { return parseFloat(d.upper_90); })]);
+        window.x = x
+
+        y.domain([0, ymax]);
 
         var g = nc_svg.append("g")
             .attr("transform", "translate(" + r0_margin.left + "," + r0_margin.top + ")");
@@ -111,7 +116,7 @@ create_initial_slice = function(){
         g.append("g")
             .attr("class", "axis axis--x")
             .attr("transform", "translate(0," + r0_height + ")")
-            .call(d3.axisBottom(x))
+            .call(d3.axisBottom(window.x))
             .selectAll("text")
                     .attr("y", 0)
                     .attr("x", 9)
@@ -139,20 +144,20 @@ create_initial_slice = function(){
           .enter()
           .append("line")
             .data(data)
-            .attr("x1", function(d) { return x(d.country); })
-            .attr("y1", function(d) { return y(d.lower_90); })
-            .attr("x2", function(d) { return x(d.country); })
-            .attr("y2", function(d) { return y(d.upper_90); })
+            .attr("x1", function(d) { return window.x(d.country); })
+            .attr("y1", function(d) { return y(parseFloat(d.lower_90)); })
+            .attr("x2", function(d) { return window.x(d.country); })
+            .attr("y2", function(d) { return y(parseFloat(d.upper_90)); })
             .attr("class", "ci_90");
 
         plot_content.selectAll(".ci_50")
           .data(data)
           .enter().append("line")
             .data(data)
-            .attr("x1", function(d) { return x(d.country); })
-            .attr("y1", function(d) { return y(d.lower_50); })
-            .attr("x2", function(d) { return x(d.country); })
-            .attr("y2", function(d) { return y(d.upper_50); })
+            .attr("x1", function(d) { return window.x(d.country); })
+            .attr("y1", function(d) { return y(parseFloat(d.lower_50)); })
+            .attr("x2", function(d) { return window.x(d.country); })
+            .attr("y2", function(d) { return y(parseFloat(d.upper_50)); })
             .attr("class", "ci_50")
 
         gmap.plot.appendTitle(nc_svg, maxDate, 0.1, 0.1, r0_container_dims, "plot_title")
@@ -160,9 +165,6 @@ create_initial_slice = function(){
         d3.csv("https://raw.githubusercontent.com/epiforecasts/covid-global/0a83efba34a9e5e5e4bf5cbb810ec749fed1a134/national-summary/rt.csv")
         .then(function(data) {
             
-            x.domain(data.map(function(d) { return d.country; }));
-
-            x.domain(window.x_domain);
 
             y.domain([0, d3.max(data, function(d) { return d.upper_90; })]);
 
@@ -172,7 +174,7 @@ create_initial_slice = function(){
             g.append("g")
                 .attr("class", "axis axis--x")
                 .attr("transform", "translate(0," + r0_height + ")")
-                .call(d3.axisBottom(x))
+                .call(d3.axisBottom(window.x))
                 .selectAll("text")
                         .attr("y", 0)
                         .attr("x", 9)
@@ -203,9 +205,9 @@ create_initial_slice = function(){
               .enter()
               .append("line")
                 .data(data)
-                .attr("x1", function(d) { return x(d.country); })
+                .attr("x1", function(d) { return window.x(d.country); })
                 .attr("y1", function(d) { return y(d.lower_90); })
-                .attr("x2", function(d) { return x(d.country); })
+                .attr("x2", function(d) { return window.x(d.country); })
                 .attr("y2", function(d) { return y(d.upper_90); })
                 .attr("class", "ci_90");
 
@@ -213,16 +215,16 @@ create_initial_slice = function(){
               .data(data)
               .enter().append("line")
                 .data(data)
-                .attr("x1", function(d) { return x(d.country); })
+                .attr("x1", function(d) { return window.x(d.country); })
                 .attr("y1", function(d) { return y(d.lower_50); })
-                .attr("x2", function(d) { return x(d.country); })
+                .attr("x2", function(d) { return window.x(d.country); })
                 .attr("y2", function(d) { return y(d.upper_50); })
                 .attr("class", "ci_50")
 
             gmap.plot.appendTitle(svg, maxDate, 0.1, 0.1, r0_container_dims, "plot_title")
 
             var r0_1_line = d3.line()
-                    .x(function(d){ return x(d.country); })
+                    .x(function(d){ return window.x(d.country); })
                     .y(function(d){ return y(1); })
                     .curve(d3.curveCardinal);
 
@@ -245,9 +247,12 @@ create_initial_slice()
 
 animate_r0_slice = function(){
 
-    /* update with only one data download */
+    d3.selectAll('#plot_content').remove()
+    d3.selectAll('.plot_title').remove()
+
     d3.csv("https://raw.githubusercontent.com/epiforecasts/covid-global/0a83efba34a9e5e5e4bf5cbb810ec749fed1a134/national-summary/cases.csv").then(function(data){
-        d3.selectAll('#plot_content').remove()
+
+        d3.selectAll('#plot_content_nc').remove()
         d3.selectAll('.plot_title').remove()
 
         maxDate = d3.max(data.map(function(d){return(d.date);}))
@@ -258,7 +263,6 @@ animate_r0_slice = function(){
 
         var slice_data = data.filter(data => data.date == maxDate);
 
-        x.domain(data.map(function(d) { return d.country; }));
 
         window.x_domain = data.map(function(d) { return d.country; })
 
@@ -272,17 +276,17 @@ animate_r0_slice = function(){
 
         var plot_content = nc_svg.append("g")
             .attr("transform", "translate(" + r0_margin.left + "," + r0_margin.top + ")")
-            .attr("id", "plot_content");
+            .attr("id", "plot_content_nc");
 
         plot_content.selectAll(".ci_90")
               .data(slice_data)
               .enter()
               .append("line")
                 .data(slice_data)
-                .attr("x1", function(d) { return x(d.country); })
-                .attr("y1", function(d) { return y(d.lower_90); })
-                .attr("x2", function(d) { return x(d.country); })
-                .attr("y2", function(d) { return y(d.upper_90); })
+                .attr("x1", function(d) { return window.x(d.country); })
+                .attr("y1", function(d) { return y(parseFloat(d.lower_90)); })
+                .attr("x2", function(d) { return window.x(d.country); })
+                .attr("y2", function(d) { return y(parseFloat(d.upper_90)); })
                 .attr("class", "ci_90");
 
 
@@ -290,10 +294,10 @@ animate_r0_slice = function(){
               .data(slice_data)
               .enter().append("line")
                 .data(slice_data)
-                .attr("x1", function(d) { return x(d.country); })
-                .attr("y1", function(d) { return y(d.lower_50); })
-                .attr("x2", function(d) { return x(d.country); })
-                .attr("y2", function(d) { return y(d.upper_50); })
+                .attr("x1", function(d) { return window.x(d.country); })
+                .attr("y1", function(d) { return y(parseFloat(d.lower_50)); })
+                .attr("x2", function(d) { return window.x(d.country); })
+                .attr("y2", function(d) { return y(parseFloat(d.upper_50)); })
                 .attr("class", "ci_50")
 
             var i;
@@ -304,34 +308,37 @@ animate_r0_slice = function(){
             dates.forEach(function (date, index) {
               setTimeout(function () {
 
-                d3.selectAll('#plot_content').remove()
+                d3.selectAll('#plot_content_nc').remove()
                 d3.selectAll('.plot_title').remove()
 
                 var slice_data = data.filter(data => data.date == date);
 
+                console.log(slice_data)
+
+
                 var plot_content = nc_svg.append("g")
                 .attr("transform", "translate(" + r0_margin.left + "," + r0_margin.top + ")")
-                .attr("id", "plot_content");
+                .attr("id", "plot_content_nc");
 
                 plot_content.selectAll(".ci_90")
                   .data(slice_data)
                   .enter()
                   .append("line")
                     .data(slice_data)
-                    .attr("x1", function(d) { return x(d.country); })
-                    .attr("y1", function(d) { return y(d.lower_90); })
-                    .attr("x2", function(d) { return x(d.country); })
-                    .attr("y2", function(d) { return y(d.upper_90); })
+                    .attr("x1", function(d) { return window.x(d.country); })
+                    .attr("y1", function(d) { return y(parseFloat(d.lower_90)); })
+                    .attr("x2", function(d) { return window.x(d.country); })
+                    .attr("y2", function(d) { return y(parseFloat(d.upper_90)); })
                     .attr("class", "ci_90");
 
                 plot_content.selectAll(".ci_50")
                   .data(slice_data)
                   .enter().append("line")
                     .data(slice_data)
-                    .attr("x1", function(d) { return x(d.country); })
-                    .attr("y1", function(d) { return y(d.lower_50); })
-                    .attr("x2", function(d) { return x(d.country); })
-                    .attr("y2", function(d) { return y(d.upper_50); })
+                    .attr("x1", function(d) { return window.x(d.country); })
+                    .attr("y1", function(d) { return y(parseFloat(d.lower_50)); })
+                    .attr("x2", function(d) { return window.x(d.country); })
+                    .attr("y2", function(d) { return y(parseFloat(d.upper_50)); })
                     .attr("class", "ci_50");
 
                 gmap.plot.appendTitle(nc_svg, date, 0.1, 0.1, r0_container_dims, "plot_title");
@@ -350,14 +357,12 @@ animate_r0_slice = function(){
     d3.csv("https://raw.githubusercontent.com/epiforecasts/covid-global/0a83efba34a9e5e5e4bf5cbb810ec749fed1a134/national-summary/rt.csv")
         .then(function(data) { 
 
-            d3.selectAll('#plot_content').remove()
+            d3.selectAll('#plot_content_r0').remove()
             d3.selectAll('.plot_title').remove()
 
             
             maxDate = d3.max(data.map(function(d){return(d.date);}))
 
-            /* set domain here before data subset */
-            x.domain(data.map(function(d) { return d.country; }));
 
             y.domain([0, d3.max(data, function(d) { return d.upper_90; })]);
 
@@ -365,21 +370,20 @@ animate_r0_slice = function(){
             var dates = dates.filter(onlyUnique)
             var dates = dates.sort()
 
-
             var slice_data = data.filter(data => data.date == dates[dates.length - 1]);
 
             var plot_content = svg.append("g")
                 .attr("transform", "translate(" + r0_margin.left + "," + r0_margin.top + ")")
-                .attr("id", "plot_content");
+                .attr("id", "plot_content_r0");
 
             plot_content.selectAll(".ci_90")
               .data(slice_data)
               .enter()
               .append("line")
                 .data(slice_data)
-                .attr("x1", function(d) { return x(d.country); })
+                .attr("x1", function(d) { return window.x(d.country); })
                 .attr("y1", function(d) { return y(d.lower_90); })
-                .attr("x2", function(d) { return x(d.country); })
+                .attr("x2", function(d) { return window.x(d.country); })
                 .attr("y2", function(d) { return y(d.upper_90); })
                 .attr("class", "ci_90");
 
@@ -388,9 +392,9 @@ animate_r0_slice = function(){
               .data(slice_data)
               .enter().append("line")
                 .data(slice_data)
-                .attr("x1", function(d) { return x(d.country); })
+                .attr("x1", function(d) { return window.x(d.country); })
                 .attr("y1", function(d) { return y(d.lower_50); })
-                .attr("x2", function(d) { return x(d.country); })
+                .attr("x2", function(d) { return window.x(d.country); })
                 .attr("y2", function(d) { return y(d.upper_50); })
                 .attr("class", "ci_50")
 
@@ -400,23 +404,25 @@ animate_r0_slice = function(){
             dates.forEach(function (date, index) {
               setTimeout(function () {
 
-                d3.selectAll('#plot_content').remove()
+                d3.selectAll('#plot_content_r0').remove()
                 d3.selectAll('.plot_title').remove()
 
                 var slice_data = data.filter(data => data.date == date);
 
+                console.log(slice_data)
+
                 var plot_content = svg.append("g")
                 .attr("transform", "translate(" + r0_margin.left + "," + r0_margin.top + ")")
-                .attr("id", "plot_content");
+                .attr("id", "plot_content_r0");
 
                 plot_content.selectAll(".ci_90")
                   .data(slice_data)
                   .enter()
                   .append("line")
                     .data(slice_data)
-                    .attr("x1", function(d) { return x(d.country); })
+                    .attr("x1", function(d) { return window.x(d.country); })
                     .attr("y1", function(d) { return y(d.lower_90); })
-                    .attr("x2", function(d) { return x(d.country); })
+                    .attr("x2", function(d) { return window.x(d.country); })
                     .attr("y2", function(d) { return y(d.upper_90); })
                     .attr("class", "ci_90");
 
@@ -424,9 +430,9 @@ animate_r0_slice = function(){
                   .data(slice_data)
                   .enter().append("line")
                     .data(slice_data)
-                    .attr("x1", function(d) { return x(d.country); })
+                    .attr("x1", function(d) { return window.x(d.country); })
                     .attr("y1", function(d) { return y(d.lower_50); })
-                    .attr("x2", function(d) { return x(d.country); })
+                    .attr("x2", function(d) { return window.x(d.country); })
                     .attr("y2", function(d) { return y(d.upper_50); })
                     .attr("class", "ci_50");
 
