@@ -13,7 +13,12 @@ body {
 
 .pContainer {
 	width: 500px;
-	height: 500px;
+	height: 600px;
+}
+
+.r0_line {
+    stroke: lightgrey;
+    stroke-width: 1;
 }
     
 </style>
@@ -21,12 +26,10 @@ body {
 
 <body>
   <div class="controls">
-    <button id="animateButton">Animate</button>
+    <button id="animateButton" onclick="animate_slice()">Animate</button>
   </div>
   <div id="plotContainer" class="pContainer"></div>
 <script>
-
-var date_bisect = d3.bisector(function(d) { return d.date; }).left;
 
 var r0_data = "https://raw.githubusercontent.com/epiforecasts/covid-global/master/national-summary/rt.csv"
 
@@ -51,86 +54,125 @@ var svg = d3.select("#plotContainer")
     .attr('width', '100%')
     .attr('height', '100%')
 
+d3.csv("https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis/master/cases_r0_comparison/data/m_compare_data.csv", d3.autoType).then(function(data) {
+	window.data = data
+
+	var dates = data.map(function(d) { return d.date.getTime(); });
+    var dates = dates.filter(onlyUnique)
+    var dates = dates.sort()
+
+    window.dates = dates
+
+	maxDate = d3.max(data, function(d) { return d.date; });
+
+	xmax = d3.max(data, function(d) { return d.rt_median; });
+        
+    ymax = d3.max(data, function(d) { return d.cases_median; });
+
+    var x = d3.scaleLinear().rangeRound([0, width])
+        	.domain([0, 3]);
+
+    window.x = x
 
 
-function checkDataLoad() {
+    var y = d3.scaleSymlog().rangeRound([height, 0])
+    	.domain([0, ymax]);
 
-   if (typeof(window.r0_dataset) != 'undefined' && typeof(window.r0_dataset) != 'undefined') {
-       console.log('Both Datasets Loaded')
 
-       /* only plot shared time period */
-       r0MinDate = d3.min(window.r0_dataset, function(d) { return d.date; });
+    window.y = y
 
-       ncMinDate = d3.min(window.nc_dataset, function(d) { return d.date; });
-
-       minDate = d3.max([r0MinDate, ncMinDate])
-
-       r0MaxDate = d3.max(window.r0_dataset, function(d) { return d.date; });
-
-       ncMaxDate = d3.max(window.nc_dataset, function(d) { return d.date; });
-
-       maxDate = d3.min([r0MaxDate, ncMaxDate])
-
-       var r0_dataset = window.r0_dataset.filter(data => data.date >= minDate);
-
-       var r0_dataset = r0_dataset.filter(data => data.date <= maxDate);
-
-       var nc_dataset = window.nc_dataset.filter(data => data.date >= minDate);
-
-       var nc_dataset = nc_dataset.filter(data => data.date <= maxDate);
-
-       var r0_slice_data = r0_dataset.filter(data => data.date == maxDate);
-
-       console.log(d3.max(r0_dataset, function(d) { return d.date; }))
-
-       console.log(r0_slice_data)
-       console.log(nc_slice_data)
-
-        xmax = d3.max(window.r0_dataset, function(d) { return d.median; });
-
-        ymax = d3.max(window.nc_dataset, function(d) { return d.median; });
-
-        console.log(xmax)
-
-        var x = d3.scaleLinear().rangeRound([0, width])
-        	.domain([0, xmax]);
-
-        var y = d3.scaleLinear().rangeRound([height, 0])
-        	.domain([0, ymax]);
-
-        var g = svg.append("g")
+    var g = svg.append("g")
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-        g.append("g")
-            .attr("class", "axis axis--x")
-            .attr("transform", "translate(0," + height + ")")
-            .call(d3.axisBottom(x))
-            .selectAll("text")
-                    .attr("y", 0)
-                    .attr("x", 9)
-                    .attr("font-size", 7)
-                    .attr("dy", ".35em")
-                    .attr("transform", "rotate(90)")
-                    .style("text-anchor", "start");
+    g.append("g")
+        .attr("class", "axis axis--x")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(x))
+        .selectAll("text")
+                .attr("y", 0)
+                .attr("x", 9)
+                .attr("font-size", 7)
+                .attr("dy", ".35em")
+                .attr("transform", "rotate(90)")
+                .style("text-anchor", "start");
 
-        g.append("g")
-            .attr("class", "axis axis--y")
-            .call(d3.axisLeft(y).ticks(10))
-          .append("text")
-            .attr("transform", "rotate(-90)")
-            .attr("y", 6)
-            .attr("dy", "0.71em")
-            .attr("text-anchor", "end")
-            .text("Frequency");
+    g.append("g")
+        .attr("class", "axis axis--y")
+        .call(d3.axisLeft(y).ticks(5))
+      .append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 6)
+        .attr("dy", "0.71em")
+        .attr("text-anchor", "end")
+        .text("Frequency");
 
-        var plot_content = svg.append("g")
-            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    var r0_line = d3.line()
+        .x(function(d){ return x(1); })
+        .y(function(d){ return y(d.cases_median); })
+        .curve(d3.curveCardinal);
+
+    g.append("path")
+        .datum(data)
+        .attr("d", r0_line)
+        .attr("class", "r0_line")
+
+    var circles = svg.selectAll("circle")
+                    .data(data)
+                    .enter()
+					.append("circle")
+					.attr("cx", function (d) { return d.rt_median; })
+                    .attr("cy", function (d) { return d.cases_median; })
+                    .attr("r", function (d) { return d.radius; });
+
+    var plot_content = svg.append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+            .attr("id", "plot_content");
+
+    var slice_data = data.filter(data => data.date.getTime() == maxDate.getTime());
+
+    plot_content.selectAll("circle")
+            .data(slice_data)
+            .enter()
+            .append("circle")
+                .attr("cx", function (d) { return x(d.rt_median); })
+                .attr("cy", function (d) { return y(d.cases_median); })
+                .attr("r", 3);
 
 
-   }
- }
+})
 
- setTimeout(checkDataLoad, 1000);
+animate_slice = function(){
+
+	var interval = 150;
+            window.dates.forEach(function (date, index) {
+              setTimeout(function () {
+
+              	d3.selectAll('#plot_content').remove()
+
+              	var plot_content = svg.append("g")
+		            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+		            .attr("id", "plot_content");
+
+		    	var slice_data = window.data.filter(data => data.date.getTime() == date);
+
+		    	plot_content.selectAll("circle")
+		            .data(slice_data)
+		            .enter()
+		            .append("circle")
+		                .attr("cx", function (d) { return window.x(d.rt_median); })
+		                .attr("cy", function (d) { return window.y(d.cases_median); })
+		                .attr("r", 3);
+
+              }, index * interval);
+          });
+
+}
+
+
+function onlyUnique(value, index, self) { 
+    	return self.indexOf(value) === index;
+}
+
 
 
 </script>
