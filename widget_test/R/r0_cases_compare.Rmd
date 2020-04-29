@@ -1,0 +1,16 @@
+---
+title: ""
+author: ""
+output: html_document
+---
+
+### Compare cases and r0
+Hamish Gibbs
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE}
+htmltools::includeHTML("../../cases_r0_comparison/cases_r0_comparison.html")
+```

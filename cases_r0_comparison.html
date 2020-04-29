@@ -2,8 +2,22 @@
 <head>
 <meta charset="utf-8">
 <script src="https://d3js.org/d3.v5.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.0.js" integrity="sha256-r/AaFHrszJtwpe+tHyNi/XCfMxYpbsRg2Uqn0x3s2zc=" crossorigin="anonymous"></script>
 <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro" rel="stylesheet">
 <style>
+
+.button {
+  background-color: white;
+  box-shadow: 0 0 5px lightgrey;
+  border: none;
+  color: black;
+  padding: 5px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 12px;
+  border-radius: 12px;
+}
 
 body { 
   font-family: 'Source Sans Pro', sans-serif;
@@ -20,28 +34,43 @@ body {
     stroke: lightgrey;
     stroke-width: 1;
 }
-    
+
+.history_line {
+    stroke: lightgrey;
+    stroke-width: 1;
+    fill: none;
+    opacity: 0.35;
+}
+
+.history_line:hover {
+    stroke: black;
+    stroke-width: 2;
+    fill: none;
+    opacity: 1;
+}
+
+circle {
+	fill: grey;
+}
+
+circle:hover {
+	fill: black;
+	r: 5;
+}
+
+
+
+
+
 </style>
 </head>
 
 <body>
   <div class="controls">
-    <button id="animateButton" onclick="animate_slice()">Animate</button>
+    <button id="animateButton" class="button" onclick="animate_slice()">Animate</button>
   </div>
   <div id="plotContainer" class="pContainer"></div>
 <script>
-
-var r0_data = "https://raw.githubusercontent.com/epiforecasts/covid-global/master/national-summary/rt.csv"
-
-var nc_data = "https://raw.githubusercontent.com/epiforecasts/covid-global/master/national-summary/cases.csv"
-
-d3.csv(r0_data, d3.autoType).then(function(data) {
-	window.r0_dataset = data
-})
-
-d3.csv(nc_data, d3.autoType).then(function(data) {
-	window.nc_dataset = data
-})
 
 var margin = {top: 20, right: 20, bottom: 20, left: 40}
 var container_dims = document.getElementById("plotContainer").getBoundingClientRect();
@@ -53,6 +82,17 @@ var svg = d3.select("#plotContainer")
     .append('svg')
     .attr('width', '100%')
     .attr('height', '100%')
+
+var tooltip = d3.select("#plotContainer")
+    .append("div")
+    .style("position", "absolute")
+    .style("z-index", "10")
+    .style("visibility", "hidden")
+    .style("background", "white")
+    .attr("id", "tooltip");
+
+console.log(d3.select("#tooltip"))
+
 
 d3.csv("https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis/master/cases_r0_comparison/data/m_compare_data.csv", d3.autoType).then(function(data) {
 	window.data = data
@@ -87,6 +127,8 @@ d3.csv("https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis/master/
     g.append("g")
         .attr("class", "axis axis--x")
         .attr("transform", "translate(0," + height + ")")
+        .attr('stroke', 'black')
+        .attr('stroke-width', 0.4)
         .call(d3.axisBottom(x))
         .selectAll("text")
                 .attr("y", 0)
@@ -98,13 +140,14 @@ d3.csv("https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis/master/
 
     g.append("g")
         .attr("class", "axis axis--y")
+        .attr('stroke', 'black')
+        .attr('stroke-width', 0.2)
         .call(d3.axisLeft(y).ticks(5))
       .append("text")
         .attr("transform", "rotate(-90)")
         .attr("y", 6)
         .attr("dy", "0.71em")
-        .attr("text-anchor", "end")
-        .text("Frequency");
+        .attr("text-anchor", "end");
 
     var r0_line = d3.line()
         .x(function(d){ return x(1); })
@@ -136,12 +179,23 @@ d3.csv("https://raw.githubusercontent.com/hamishgibbs/rt_interactive_vis/master/
             .append("circle")
                 .attr("cx", function (d) { return x(d.rt_median); })
                 .attr("cy", function (d) { return y(d.cases_median); })
-                .attr("r", 3);
+                .attr("r", 2)
+                .on('mouseover', function(d){ return tooltip.style("visibility", "visible");})
+                .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
+                .append("svg:title")
+    				.text(function(d) { return d.country; })
+    				.attr("class", "circle_title");
 
 
 })
 
+circle_hover = function(){
+	console.log(this.innerHTML)
+}
+
 animate_slice = function(){
+
+	d3.selectAll('.button').attr("disabled", "true")
 
 	var interval = 150;
             window.dates.forEach(function (date, index) {
@@ -161,18 +215,61 @@ animate_slice = function(){
 		            .append("circle")
 		                .attr("cx", function (d) { return window.x(d.rt_median); })
 		                .attr("cy", function (d) { return window.y(d.cases_median); })
-		                .attr("r", 3);
+		                .attr("r", 2);
+
+		        /* line of prev traj */
+		        var previous_data = window.data.filter(data => data.date.getTime() <= date);
+
+
+		        var countries = previous_data.map(function(d) { return d.country; });
+			    var countries = countries.filter(onlyUnique)
+
+			    for (country in countries){
+
+			    	var country_data = previous_data.filter(data => data.country == countries[country]);
+
+			    	var country_line = d3.line()
+				        .x(function(d){ return x(d.rt_median); })
+				        .y(function(d){ return y(d.cases_median); })
+				        .curve(d3.curveCardinal);
+			    	
+			    	plot_content.append("path")
+				        .datum(country_data)
+				        .attr("d", country_line)
+				        .attr("class", "history_line")
+				        .on('mouseover', function(d){ d3.select(this).moveToFront(); return tooltip.style("visibility", "visible");})
+		                .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
+		                .append("svg:title")
+		    				.text(countries[country])
+		    				.attr("class", "circle_title");
+
+			    }
+
+			    if(date == d3.max(window.dates)){
+                        d3.selectAll('.button').attr("disabled", null)
+
+                }
 
               }, index * interval);
           });
 
 }
 
+line_mouseover = function(){
+	d3.select(this)
+		.moveToFront()
+
+}
 
 function onlyUnique(value, index, self) { 
     	return self.indexOf(value) === index;
 }
 
+d3.selection.prototype.moveToFront = function() {
+      return this.each(function(){
+        this.parentNode.appendChild(this);
+      });
+}
 
 
 </script>
