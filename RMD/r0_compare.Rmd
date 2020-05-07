@@ -9,6 +9,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r echo=FALSE}
-htmltools::includeHTML("../../r0_slice_plot/xaxis_test.html")
+htmltools::includeHTML("../../r0_slice_plot/r0_slice_plot.html")
 ```
 
