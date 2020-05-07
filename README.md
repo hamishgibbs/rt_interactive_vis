@@ -1,5 +1,5 @@
 # rt_interactive_vis
-data for covid rt interactive visualisation test
+Visualizations for RT estimation [here](http://epiforecasts.io/covid/posts/global)
 
 ### Test visualisations:
 
