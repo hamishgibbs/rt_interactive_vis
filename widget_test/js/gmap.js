@@ -52,7 +52,7 @@ gmap.geometry = {
         return(line)
     },
     plotHPoly: function(x, y0, y1, x_scale, y_scale){
-        
+
         var poly = d3.area()
                     .x(function(d) { return x_scale(d[x]) })
                     .y0(function(d) { return y_scale(d[y0]) })
@@ -61,7 +61,7 @@ gmap.geometry = {
         return(poly)
     },
     plotSpatialPolygons: function(data, projection, map_width, map_height, choropleth=null){
-        
+
         var features = data.features;
 
         var path = d3.geo.path()
@@ -81,10 +81,10 @@ gmap.geometry = {
         svg.append("path")
                 .datum(data)
                 .attr("d", geom)
-                .attr("class", cls)   
+                .attr("class", cls)
     },
     appendSpatialGeom: function(svg, data, geom, cls, on){
-        /* cls accepts either string class or functions to 
+        /* cls accepts either string class or functions to
         map class names from data attributes */
         /* "on" accepts array of [action, function] or array of arrays of [action, function] */
         /* required: array of arrays even if one element of interaction */
@@ -95,7 +95,7 @@ gmap.geometry = {
             .append("path")
             .attr("d", geom)
             .attr("class", cls)
-        
+
         var i
         for (i = 0; i < on.length; i++) {
             spap.on(on[i][0], on[i][1])
@@ -117,7 +117,7 @@ gmap.plot = {
                 .attr("class", cls);
     },
     appendTitle: function(svg, text, x_pos, y_pos, container_dims, cls, id=null){
-        
+
         svg.append("text")
             .attr("x", container_dims.width * x_pos)
             .attr("y", container_dims.height * y_pos)
@@ -129,7 +129,7 @@ gmap.plot = {
 
 gmap.geodata = {
     calculateScaleCenter: function(features, map_width, map_height, path) {
-  
+
     var bbox_path = path.bounds(features),
         scale = 120 / Math.max(
           (bbox_path[1][0] - bbox_path[0][0]) / map_width,
@@ -150,7 +150,7 @@ gmap.geodata = {
 };
 
 gmap.interact = {
-    
+
     /* change id to hover_active on hover for spatial data */
     /*hilight values */
 
